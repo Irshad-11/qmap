@@ -1,7 +1,7 @@
 <div align="center">
 
 # QMap
-### A study companion developed by **Irshad Hossain**
+<h5> A study companion tool developed by <b>Irshad Hossain</b></h5>
 
 <a href="https://irshad-11.github.io/qmap/" target="_blank">
   <img src="https://img.shields.io/badge/Click_to_Explore-QMap-d9a441?style=for-the-badge&logo=google-chrome&logoColor=black" alt="Click to Explore QMap"/>
