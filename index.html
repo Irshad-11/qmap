@@ -1,0 +1,1521 @@
+<!-- ================================================================
+     INTERACTIVE MIND MAP — single-file, self-contained
+     Trilium Notes Render Note compatible (scoped CSS, IIFE JS)
+     ================================================================ -->
+<div id="mindmap-root">
+
+  <aside class="mm-sidebar" id="mmSidebar">
+    <div class="mm-sidebar-head">
+      <div class="mm-brand"><span class="mm-brand-dot"></span>Mind&nbsp;Maps</div>
+      <button class="mm-icon-btn" id="mmNewBtn" title="New mind map">＋</button>
+    </div>
+    <div class="mm-file-list" id="mmFileList"></div>
+    <div class="mm-sidebar-foot">
+      <button class="mm-btn-ghost mm-btn-block" id="mmExportBtn">Export current JSON</button>
+    </div>
+  </aside>
+
+  <button class="mm-edge-toggle" id="mmEdgeToggle" title="Show sidebar">☰</button>
+
+  <main class="mm-main">
+    <header class="mm-toolbar">
+      <button class="mm-icon-btn" id="mmToggleSidebar" title="Hide sidebar">☰</button>
+      <div class="mm-title" id="mmCurrentTitle">No map selected</div>
+      <div class="mm-toolbar-spacer"></div>
+      <button class="mm-icon-btn" id="mmCollapseAll" title="Collapse all">－</button>
+      <button class="mm-icon-btn" id="mmExpandAll" title="Expand all">＋</button>
+      <span class="mm-divider"></span>
+      <button class="mm-icon-btn" id="mmZoomOut" title="Zoom out">−</button>
+      <span class="mm-zoom-label" id="mmZoomLabel">100%</span>
+      <button class="mm-icon-btn" id="mmZoomIn" title="Zoom in">+</button>
+      <button class="mm-icon-btn" id="mmZoomReset" title="Fit to screen">⤢</button>
+      <span class="mm-divider"></span>
+      <button class="mm-icon-btn" id="mmEditMapBtn" title="Edit current map">✏️</button>
+      <button class="mm-icon-btn" id="mmDownloadPng" title="Download PNG">⬇️</button>
+      <button class="mm-icon-btn" id="mmDarkToggle" title="Toggle dark mode">🌙</button>
+    </header>
+
+    <div class="mm-canvas-wrap" id="mmCanvasWrap">
+      <svg id="mmSvg" class="mm-svg" xmlns="http://www.w3.org/2000/svg">
+        <g id="mmViewport">
+          <g id="mmEdgesLayer"></g>
+          <g id="mmNodesLayer"></g>
+        </g>
+      </svg>
+      <div class="mm-empty-state" id="mmEmptyState">
+        <div class="mm-empty-card">
+          <div class="mm-empty-glyph">＋</div>
+          <p>No mind map open yet.</p>
+          <button class="mm-btn-primary" id="mmEmptyNewBtn">Create your first mind map</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── NEW MAP MODAL ── -->
+  <div class="mm-modal-overlay" id="mmModalOverlay">
+    <div class="mm-modal">
+      <h3>New Mind Map</h3>
+      <input id="mmNameInput" class="mm-input" placeholder="Map name (e.g. Project Planning)" />
+
+      <div class="mm-format-tabs">
+        <button class="mm-format-tab mm-active" id="mmTabIndent" type="button">Indent / Tab text</button>
+        <button class="mm-format-tab" id="mmTabJson" type="button">JSON</button>
+        <button class="mm-btn-ghost mm-btn-small" id="mmLoadExampleBtn" type="button">Load example</button>
+      </div>
+
+      <textarea id="mmTextInput" class="mm-textarea" spellcheck="false"
+        placeholder="Root&#10;    Child A&#10;        Grandchild 1&#10;        Grandchild 2&#10;    Child B"></textarea>
+
+      <div class="mm-format-hint" id="mmFormatHint">
+        Each line is a node. Indent with spaces or tabs to nest under the line above. First line = root.
+      </div>
+      <div class="mm-modal-error" id="mmModalError"></div>
+      <div class="mm-modal-actions">
+        <button class="mm-btn-ghost" id="mmCancelBtn">Cancel</button>
+        <button class="mm-btn-primary" id="mmSaveBtn">Parse &amp; Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EDIT MAP MODAL ── -->
+  <div class="mm-modal-overlay" id="mmEditOverlay">
+    <div class="mm-modal mm-edit-modal">
+      <div class="mm-edit-header">
+        <h3 style="margin:0">Edit Mind Map</h3>
+        <input id="mmEditNameInput" class="mm-input mm-edit-name-input" placeholder="Map name" />
+      </div>
+
+      <div class="mm-format-tabs">
+        <button class="mm-format-tab mm-active" id="mmEditTabIndent" type="button">Indent / Tab text</button>
+        <button class="mm-format-tab" id="mmEditTabJson" type="button">JSON</button>
+      </div>
+
+      <div class="mm-edit-split">
+        <div class="mm-edit-left">
+          <textarea id="mmEditTextarea" class="mm-textarea mm-edit-textarea" spellcheck="false"></textarea>
+          <div class="mm-format-hint" id="mmEditFormatHint">Edit above. Preview updates live →</div>
+          <div class="mm-modal-error" id="mmEditError"></div>
+        </div>
+        <div class="mm-edit-right">
+          <div class="mm-preview-label">Live Preview</div>
+          <svg id="mmPreviewSvg" class="mm-preview-svg" xmlns="http://www.w3.org/2000/svg"
+               viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet">
+            <g id="mmPreviewEdges"></g>
+            <g id="mmPreviewNodes"></g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="mm-modal-actions">
+        <button class="mm-btn-ghost" id="mmEditCancelBtn">Cancel</button>
+        <button class="mm-btn-primary" id="mmEditSaveBtn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONTEXT MENU ── -->
+  <div class="mm-context-menu" id="mmContextMenu">
+    <div class="mm-ctx-item" id="mmCtxRename">✏️ &nbsp;Rename node</div>
+    <div class="mm-ctx-item" id="mmCtxAddChild">＋ &nbsp;Add child</div>
+    <div class="mm-ctx-divider"></div>
+    <div class="mm-ctx-item mm-ctx-danger" id="mmCtxDelete">✕ &nbsp;Delete node</div>
+  </div>
+
+</div><!-- #mindmap-root -->
+
+<style>
+/* ── TOKENS ── */
+#mindmap-root{
+  --mm-bg:#f3f2ee;
+  --mm-canvas:#eae8e1;
+  --mm-panel:#ffffff;
+  --mm-border:#ddd9cf;
+  --mm-text:#26241f;
+  --mm-text-dim:#7a7666;
+  --mm-accent:#c9622f;
+  --mm-accent-light:rgba(201,98,47,0.15);
+  --mm-node-root:#4b4f77;
+  --mm-node-root-text:#f4f2ff;
+  --mm-node-mid:#2c3a40;
+  --mm-node-mid-text:#eef4f2;
+  --mm-node-leaf:#274238;
+  --mm-node-leaf-text:#e9f4ee;
+  --mm-edge-1:#8f93cf;
+  --mm-edge-2:#5fa38d;
+  --mm-edge-3:#c9622f;
+  --mm-check-ok:#3a9e6f;
+  --mm-shadow:0 6px 18px rgba(30,26,16,0.10);
+  --mm-radius:11px;
+  --mm-tf:.42s cubic-bezier(.22,.61,.36,1);
+  --mm-tf-fast:.18s cubic-bezier(.4,0,.2,1);
+
+  position:relative; display:flex;
+  width:100%; height:100vh; min-height:520px;
+  background:var(--mm-bg); color:var(--mm-text);
+  font-family:'Segoe UI',ui-sans-serif,system-ui,-apple-system,Helvetica,Arial,sans-serif;
+  overflow:hidden; isolation:isolate;
+}
+#mindmap-root.mm-dark{
+  --mm-bg:#191a1e; --mm-canvas:#141519; --mm-panel:#212227;
+  --mm-border:#33343b; --mm-text:#eceae3; --mm-text-dim:#8c8a83;
+  --mm-node-root:#5b5fa0; --mm-node-root-text:#f4f2ff;
+  --mm-node-mid:#26343a; --mm-node-mid-text:#e3ede9;
+  --mm-node-leaf:#20362e; --mm-node-leaf-text:#d9ede3;
+  --mm-edge-1:#7e83c9; --mm-edge-2:#4f9d8a; --mm-edge-3:#e0793f;
+  --mm-check-ok:#3fc48a;
+  --mm-shadow:0 6px 22px rgba(0,0,0,0.45);
+}
+#mindmap-root *{ box-sizing:border-box; }
+#mindmap-root button{ font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+#mindmap-root input,#mindmap-root textarea{ font-family:inherit; color:inherit; }
+
+/* ── SIDEBAR ── */
+#mindmap-root .mm-sidebar{
+  width:250px; min-width:250px; height:100%;
+  background:var(--mm-panel); border-right:1px solid var(--mm-border);
+  display:flex; flex-direction:column;
+  transition:margin-left var(--mm-tf-fast);
+}
+#mindmap-root.mm-sidebar-hidden .mm-sidebar{ margin-left:-251px; }
+#mindmap-root .mm-sidebar-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 14px 12px; border-bottom:1px solid var(--mm-border);
+}
+#mindmap-root .mm-brand{ font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:8px;}
+#mindmap-root .mm-brand-dot{ width:9px; height:9px; border-radius:50%; background:var(--mm-accent); display:inline-block;}
+#mindmap-root .mm-file-list{ flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px;}
+#mindmap-root .mm-file-item{
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+  padding:9px 10px; border-radius:8px; font-size:13px; cursor:pointer;
+  transition:background var(--mm-tf-fast);
+}
+#mindmap-root .mm-file-item:hover{ background:var(--mm-bg); }
+#mindmap-root .mm-file-item.mm-active{ background:var(--mm-accent); color:#fff; }
+#mindmap-root .mm-file-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+#mindmap-root .mm-file-del{ opacity:.55; font-size:12px; padding:2px 5px; border-radius:5px; flex-shrink:0;}
+#mindmap-root .mm-file-del:hover{ opacity:1; background:rgba(0,0,0,.15);}
+#mindmap-root .mm-file-empty{ color:var(--mm-text-dim); font-size:12.5px; padding:14px 10px; text-align:center;}
+#mindmap-root .mm-sidebar-foot{ padding:10px; border-top:1px solid var(--mm-border);}
+
+#mindmap-root .mm-edge-toggle{
+  position:absolute; left:10px; top:14px; z-index:5;
+  width:34px; height:34px; border-radius:9px; background:var(--mm-panel);
+  border:1px solid var(--mm-border); box-shadow:var(--mm-shadow);
+  display:none; align-items:center; justify-content:center; font-size:15px;
+}
+#mindmap-root.mm-sidebar-hidden .mm-edge-toggle{ display:flex; }
+
+/* ── TOOLBAR ── */
+#mindmap-root .mm-main{ flex:1; min-width:0; display:flex; flex-direction:column; height:100%;}
+#mindmap-root .mm-toolbar{
+  display:flex; align-items:center; gap:4px; padding:8px 14px;
+  background:var(--mm-panel); border-bottom:1px solid var(--mm-border); z-index:3;
+  flex-wrap:wrap;
+}
+#mindmap-root .mm-title{ font-weight:600; font-size:14px; margin-left:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px;}
+#mindmap-root .mm-toolbar-spacer{ flex:1; }
+#mindmap-root .mm-divider{ width:1px; height:20px; background:var(--mm-border); margin:0 2px;}
+#mindmap-root .mm-icon-btn{
+  width:30px; height:30px; border-radius:8px; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+  transition:background var(--mm-tf-fast);
+}
+#mindmap-root .mm-icon-btn:hover{ background:var(--mm-bg); }
+#mindmap-root .mm-zoom-label{ font-size:12px; color:var(--mm-text-dim); min-width:38px; text-align:center;}
+
+/* ── CANVAS ── */
+#mindmap-root .mm-canvas-wrap{
+  position:relative; flex:1; overflow:hidden; background:var(--mm-canvas);
+  background-image:radial-gradient(var(--mm-border) 1px, transparent 1px);
+  background-size:26px 26px;
+}
+#mindmap-root .mm-svg{ width:100%; height:100%; display:block; cursor:grab; }
+#mindmap-root .mm-svg.mm-grabbing{ cursor:grabbing; }
+
+/* ── NODE GROUPS — smooth transitions ── */
+#mindmap-root .mm-node-group{
+  cursor:default;
+  will-change:transform,opacity;
+  transition:transform var(--mm-tf), opacity .3s ease;
+}
+#mindmap-root .mm-node-group .mm-node-rect{
+  stroke:rgba(0,0,0,.12); stroke-width:1px;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.22));
+  transition:filter var(--mm-tf-fast);
+}
+#mindmap-root .mm-node-group:hover .mm-node-rect{
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.32));
+}
+#mindmap-root .mm-node-text{
+  font-size:13.5px; font-weight:600; dominant-baseline:middle;
+  pointer-events:none; letter-spacing:.1px;
+}
+#mindmap-root .mm-node-strike{
+  pointer-events:none; opacity:.65;
+}
+#mindmap-root .mm-checkbox-group{ cursor:pointer; }
+#mindmap-root .mm-toggle-group{
+  cursor:pointer;
+  transition:opacity var(--mm-tf-fast);
+}
+#mindmap-root .mm-toggle-group:hover{ opacity:.82; }
+#mindmap-root .mm-toggle-circle{ stroke:rgba(0,0,0,.15); stroke-width:1px; }
+#mindmap-root .mm-toggle-glyph{
+  pointer-events:none; font-size:11px; fill:#fff; text-anchor:middle;
+  dominant-baseline:middle; font-weight:700;
+  transition:all .22s ease;
+}
+#mindmap-root .mm-edge-path{
+  fill:none; stroke-width:2.2px;
+  transition:opacity .32s ease;
+}
+
+/* ── EMPTY STATE ── */
+#mindmap-root .mm-empty-state{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+#mindmap-root .mm-empty-card{
+  background:var(--mm-panel); border:1px solid var(--mm-border); border-radius:14px;
+  padding:34px 40px; text-align:center; box-shadow:var(--mm-shadow); max-width:280px; pointer-events:all;
+}
+#mindmap-root .mm-empty-glyph{
+  width:46px; height:46px; border-radius:50%; background:var(--mm-accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto 14px;
+}
+#mindmap-root .mm-empty-card p{ margin:0 0 16px; color:var(--mm-text-dim); font-size:13.5px;}
+
+/* ── BUTTONS ── */
+#mindmap-root .mm-btn-primary{
+  background:var(--mm-accent); color:#fff; padding:9px 16px; border-radius:9px;
+  font-size:13.5px; font-weight:600; transition:filter var(--mm-tf-fast);
+}
+#mindmap-root .mm-btn-primary:hover{ filter:brightness(1.08);}
+#mindmap-root .mm-btn-ghost{
+  background:transparent; color:var(--mm-text); border:1px solid var(--mm-border);
+  padding:8px 14px; border-radius:9px; font-size:13px; transition:background var(--mm-tf-fast);
+}
+#mindmap-root .mm-btn-ghost:hover{ background:var(--mm-bg);}
+#mindmap-root .mm-btn-small{ padding:6px 10px; font-size:12px;}
+#mindmap-root .mm-btn-block{ width:100%;}
+
+/* ── MODALS shared ── */
+#mindmap-root .mm-modal-overlay{
+  position:absolute; inset:0; background:rgba(10,10,10,.45); display:none;
+  align-items:center; justify-content:center; z-index:20; backdrop-filter:blur(2px);
+}
+#mindmap-root .mm-modal-overlay.mm-open{ display:flex;}
+#mindmap-root .mm-modal{
+  width:560px; max-width:92vw; max-height:90vh; overflow:auto;
+  background:var(--mm-panel); border:1px solid var(--mm-border); border-radius:14px;
+  padding:22px; box-shadow:var(--mm-shadow);
+}
+#mindmap-root .mm-modal h3{ margin:0 0 14px; font-size:16px;}
+#mindmap-root .mm-input{
+  width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--mm-border);
+  background:var(--mm-bg); font-size:13.5px; margin-bottom:10px; outline:none;
+  transition:border-color var(--mm-tf-fast);
+}
+#mindmap-root .mm-input:focus{ border-color:var(--mm-accent);}
+#mindmap-root .mm-format-tabs{ display:flex; align-items:center; gap:6px; margin-bottom:8px;}
+#mindmap-root .mm-format-tab{
+  padding:6px 12px; border-radius:7px; font-size:12.5px;
+  border:1px solid var(--mm-border); color:var(--mm-text-dim);
+  transition:all var(--mm-tf-fast);
+}
+#mindmap-root .mm-format-tab.mm-active{ background:var(--mm-accent); color:#fff; border-color:transparent;}
+#mindmap-root .mm-textarea{
+  width:100%; height:220px; resize:vertical; padding:11px; border-radius:8px;
+  border:1px solid var(--mm-border); background:var(--mm-bg);
+  font-family:'SFMono-Regular',Consolas,'Courier New',monospace;
+  font-size:12.5px; line-height:1.6; white-space:pre; tab-size:4; outline:none;
+  transition:border-color var(--mm-tf-fast);
+}
+#mindmap-root .mm-textarea:focus{ border-color:var(--mm-accent);}
+#mindmap-root .mm-format-hint{ font-size:11.5px; color:var(--mm-text-dim); margin-top:8px; line-height:1.5;}
+#mindmap-root .mm-modal-error{ color:#c0392b; font-size:12.5px; margin-top:8px; min-height:16px;}
+#mindmap-root .mm-modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+
+/* ── EDIT MODAL specific ── */
+#mindmap-root .mm-edit-modal{
+  width:min(92vw, 960px); max-height:90vh;
+}
+#mindmap-root .mm-edit-header{
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
+}
+#mindmap-root .mm-edit-name-input{
+  flex:1; margin-bottom:0;
+}
+#mindmap-root .mm-edit-split{
+  display:flex; gap:12px; margin-top:4px;
+}
+#mindmap-root .mm-edit-left{
+  flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;
+}
+#mindmap-root .mm-edit-textarea{ height:340px; resize:none;}
+#mindmap-root .mm-edit-right{
+  width:340px; flex-shrink:0; display:flex; flex-direction:column; gap:6px;
+}
+#mindmap-root .mm-preview-label{
+  font-size:11.5px; font-weight:600; color:var(--mm-text-dim); text-transform:uppercase; letter-spacing:.6px;
+}
+#mindmap-root .mm-preview-svg{
+  flex:1; min-height:300px; border-radius:10px; border:1px solid var(--mm-border);
+  background:var(--mm-canvas);
+  background-image:radial-gradient(var(--mm-border) 1px, transparent 1px);
+  background-size:18px 18px;
+}
+
+/* ── CONTEXT MENU ── */
+#mindmap-root .mm-context-menu{
+  position:absolute; z-index:30; display:none;
+  background:var(--mm-panel); border:1px solid var(--mm-border);
+  border-radius:10px; box-shadow:var(--mm-shadow);
+  padding:6px; min-width:170px;
+  animation:mm-ctx-in .12s ease both;
+}
+@keyframes mm-ctx-in{
+  from{ opacity:0; transform:scale(.95) translateY(-4px); }
+  to{ opacity:1; transform:scale(1) translateY(0); }
+}
+#mindmap-root .mm-ctx-item{
+  padding:8px 12px; border-radius:7px; font-size:13px; cursor:pointer;
+  transition:background var(--mm-tf-fast); display:flex; align-items:center;
+}
+#mindmap-root .mm-ctx-item:hover{ background:var(--mm-bg);}
+#mindmap-root .mm-ctx-danger{ color:#c0392b;}
+#mindmap-root .mm-ctx-danger:hover{ background:rgba(192,57,43,.1);}
+#mindmap-root .mm-ctx-divider{ height:1px; background:var(--mm-border); margin:4px 0;}
+
+/* ── INLINE EDIT input (foreignObject) ── */
+#mindmap-root .mm-inline-input{
+  width:100%; height:100%; border:none; outline:none;
+  background:rgba(0,0,0,.3); color:#fff;
+  font-size:13.5px; font-weight:600;
+  padding:0 8px; border-radius:8px;
+  font-family:'Segoe UI',ui-sans-serif,system-ui,sans-serif;
+}
+</style>
+
+<script>
+(function(){
+"use strict";
+
+/* ================================================================
+   CONSTANTS
+================================================================ */
+var LS_INDEX     = "mm_index_v2";
+var LS_DATA_PFX  = "mm_data_v2_";
+var LS_PREFS     = "mm_prefs_v2";
+
+var PAD_X        = 18;
+var BOX_H        = 38;
+var MIN_W        = 70;
+var SIB_GAP      = 14;
+var LEVEL_GAP    = 78;
+var HUB_GAP      = 34;
+var CB_X         = 8;    // checkbox left edge inside rect
+var CB_SIZE      = 14;   // checkbox square size
+var CB_GAP       = 8;    // gap between checkbox right edge and text
+var CB_TOTAL     = CB_X + CB_SIZE + CB_GAP;  // = 30
+
+var NODE_FONT    = "600 13.5px 'Segoe UI', ui-sans-serif, system-ui, sans-serif";
+var EDGE_COLORS  = ["var(--mm-edge-1)","var(--mm-edge-2)","var(--mm-edge-3)"];
+
+var EXAMPLE_INDENT =
+"Adversarial Machine Learning\n"+
+"    Taxonomy of Attacks\n"+
+"        Influence\n"+
+"            Causative\n"+
+"            Exploratory\n"+
+"        Security Violation\n"+
+"            Integrity\n"+
+"            Availability\n"+
+"            Privacy\n"+
+"    Adversary Modeling\n"+
+"        Capabilities\n"+
+"            Insertion Model\n"+
+"            Alteration Model\n"+
+"        Attacker Knowledge\n"+
+"            Algorithm\n"+
+"            Feature Space\n"+
+"    Defensive Countermeasures\n"+
+"        Data Sanitization\n"+
+"            RONI Filter\n"+
+"        Robust Learning\n"+
+"            Antidote Algorithm\n";
+
+var EXAMPLE_JSON = JSON.stringify({
+  name:"Adversarial Machine Learning",
+  children:[
+    {name:"Taxonomy of Attacks",children:[
+      {name:"Influence",children:[{name:"Causative"},{name:"Exploratory"}]},
+      {name:"Security Violation",children:[{name:"Integrity"},{name:"Availability"},{name:"Privacy"}]}
+    ]},
+    {name:"Adversary Modeling",children:[
+      {name:"Capabilities",children:[{name:"Insertion Model"},{name:"Alteration Model"}]},
+      {name:"Attacker Knowledge",children:[{name:"Algorithm"},{name:"Feature Space"}]}
+    ]}
+  ]
+},null,2);
+
+/* ================================================================
+   STATE
+================================================================ */
+var mmState = {
+  maps:[], currentId:null, tree:null,
+  dom:{ nodes:{}, edges:{} },
+  scale:1, tx:60, ty:0,
+  isPanning:false, panStart:null,
+  sidebarHidden:false, dark:false,
+  idCounter:0
+};
+var mmPrevLayout = null;
+var mmCtxNodeId  = null;
+var mmEditMode   = "indent";   // "indent" | "json"
+var mmNewMode    = "indent";
+var mmEditDebounceTimer = null;
+
+/* ================================================================
+   DOM REFS
+================================================================ */
+function $(id){ return document.getElementById(id); }
+var root          = $("mindmap-root");
+var elFileList    = $("mmFileList");
+var elCurrentTitle= $("mmCurrentTitle");
+var elSvg         = $("mmSvg");
+var elViewport    = $("mmViewport");
+var elEdgesLayer  = $("mmEdgesLayer");
+var elNodesLayer  = $("mmNodesLayer");
+var elEmptyState  = $("mmEmptyState");
+var elZoomLabel   = $("mmZoomLabel");
+var elModalOverlay= $("mmModalOverlay");
+var elNameInput   = $("mmNameInput");
+var elTextInput   = $("mmTextInput");
+var elModalError  = $("mmModalError");
+var elFormatHint  = $("mmFormatHint");
+var elTabIndent   = $("mmTabIndent");
+var elTabJson     = $("mmTabJson");
+var elEditOverlay = $("mmEditOverlay");
+var elEditNameInput=$("mmEditNameInput");
+var elEditTextarea= $("mmEditTextarea");
+var elEditFormatHint=$("mmEditFormatHint");
+var elEditError   = $("mmEditError");
+var elEditTabIndent=$("mmEditTabIndent");
+var elEditTabJson = $("mmEditTabJson");
+var elPreviewSvg  = $("mmPreviewSvg");
+var elPreviewEdges= $("mmPreviewEdges");
+var elPreviewNodes= $("mmPreviewNodes");
+var elContextMenu = $("mmContextMenu");
+
+/* ================================================================
+   STORAGE
+================================================================ */
+function mmLoadIndex(){
+  try{ mmState.maps = JSON.parse(localStorage.getItem(LS_INDEX))||[]; }catch(e){ mmState.maps=[]; }
+}
+function mmSaveIndex(){
+  localStorage.setItem(LS_INDEX, JSON.stringify(mmState.maps));
+}
+function mmSaveMapData(id,tree){
+  localStorage.setItem(LS_DATA_PFX+id, JSON.stringify(tree));
+}
+function mmLoadMapData(id){
+  try{ return JSON.parse(localStorage.getItem(LS_DATA_PFX+id))||null; }catch(e){ return null; }
+}
+function mmDeleteMapData(id){
+  localStorage.removeItem(LS_DATA_PFX+id);
+}
+function mmLoadPrefs(){
+  try{
+    var p=JSON.parse(localStorage.getItem(LS_PREFS))||{};
+    mmState.dark=!!p.dark; mmState.sidebarHidden=!!p.sidebarHidden;
+  }catch(e){}
+}
+function mmSavePrefs(){
+  localStorage.setItem(LS_PREFS, JSON.stringify({dark:mmState.dark,sidebarHidden:mmState.sidebarHidden}));
+}
+
+/* ================================================================
+   TREE UTILITIES
+================================================================ */
+function mmAssignIds(node, depth){
+  node.id       = "n"+(mmState.idCounter++);
+  node.collapsed= node.collapsed===undefined ? false : !!node.collapsed;
+  node.checked  = node.checked===undefined   ? false : !!node.checked;
+  if(!node.children) node.children=[];
+  node.children.forEach(function(c){ mmAssignIds(c, (depth||0)+1); });
+  return node;
+}
+
+function mmFindNode(root, id){
+  if(!root) return null;
+  if(root.id===id) return root;
+  for(var i=0;i<(root.children||[]).length;i++){
+    var f=mmFindNode(root.children[i],id);
+    if(f) return f;
+  }
+  return null;
+}
+
+/* Cascade check + cascade up.
+   After setDeep we recompute all non-leaf nodes from their children. */
+function mmToggleCheck(id){
+  var node=mmFindNode(mmState.tree,id);
+  if(!node) return;
+  var nv=!node.checked;
+  function setDeep(n,v){ n.checked=v; (n.children||[]).forEach(function(c){setDeep(c,v);}); }
+  setDeep(node,nv);
+  function recompute(n){
+    if(!n.children||n.children.length===0) return !!n.checked;
+    var all=n.children.every(function(c){return recompute(c);});
+    n.checked=all;
+    return all;
+  }
+  recompute(mmState.tree);
+  mmRender();
+  mmPersistCurrent();
+}
+
+/* ================================================================
+   PARSING
+================================================================ */
+function mmParseJson(text){
+  var d=JSON.parse(text);
+  if(Array.isArray(d)) d={name:"Root",children:d};
+  if(!d.name) throw new Error('JSON needs a top-level "name" field.');
+  return d;
+}
+function mmParseIndent(text){
+  var lines=text.replace(/\r\n/g,"\n").split("\n").filter(function(l){return l.trim();}).map(function(l){
+    var exp=l.replace(/\t/g,"    ");
+    return {indent:exp.length-exp.trimStart().length, name:exp.trim()};
+  });
+  if(!lines.length) throw new Error("No content to parse.");
+  var rootNode={name:lines[0].name,children:[]};
+  var stack=[{indent:lines[0].indent,node:rootNode}];
+  for(var i=1;i<lines.length;i++){
+    var ln=lines[i];
+    while(stack.length>1&&ln.indent<=stack[stack.length-1].indent) stack.pop();
+    var child={name:ln.name,children:[]};
+    stack[stack.length-1].node.children.push(child);
+    stack.push({indent:ln.indent,node:child});
+  }
+  return rootNode;
+}
+function mmParseInput(text,mode){
+  text=text.trim();
+  if(!text) throw new Error("Nothing to parse.");
+  var tree;
+  if(mode==="json"){ tree=mmParseJson(text); }
+  else{ tree=(text[0]==="{"|text[0]==="[") ? mmParseJson(text) : mmParseIndent(text); }
+  mmState.idCounter=0;
+  return mmAssignIds(tree,0);
+}
+
+/* Convert tree back to indented text */
+function mmTreeToIndent(node,depth){
+  var indent="";
+  for(var i=0;i<depth;i++) indent+="    ";
+  var lines=[indent+node.name];
+  (node.children||[]).forEach(function(c){ lines=lines.concat(mmTreeToIndent(c,depth+1)); });
+  return lines;
+}
+function mmTreeToStr(tree){ return mmTreeToIndent(tree,0).join("\n"); }
+
+/* Try to preserve checked/collapsed by path after a structural edit */
+function mmPreserveStates(oldTree,newTree){
+  var map={};
+  function collect(n,path){
+    map[path]={checked:!!n.checked,collapsed:!!n.collapsed};
+    (n.children||[]).forEach(function(c,i){ collect(c,path+"/"+i+":"+c.name); });
+  }
+  collect(oldTree,"0:"+oldTree.name);
+  function apply(n,path){
+    var s=map[path];
+    if(s){ n.checked=s.checked; n.collapsed=s.collapsed; }
+    (n.children||[]).forEach(function(c,i){ apply(c,path+"/"+i+":"+c.name); });
+  }
+  apply(newTree,"0:"+newTree.name);
+}
+
+/* ================================================================
+   LAYOUT
+================================================================ */
+var MEASURE_CANVAS=document.createElement("canvas");
+var MEASURE_CTX=MEASURE_CANVAS.getContext("2d");
+
+function mmTextWidth(str,hasCheckbox){
+  MEASURE_CTX.font=NODE_FONT;
+  var extra=hasCheckbox ? CB_TOTAL : 0;
+  return Math.max(MIN_W, Math.ceil(MEASURE_CTX.measureText(str).width)+PAD_X*2+extra);
+}
+
+function mmComputeLayout(tree){
+  var nodes={};
+  var yc={v:0};
+  function place(node,depth,parentId,xOff){
+    node._w=mmTextWidth(node.name, depth>0);
+    var hasVis=node.children&&node.children.length&&!node.collapsed;
+    var y;
+    if(!hasVis){
+      y=yc.v; yc.v+=BOX_H+SIB_GAP;
+    } else {
+      var cxOff=xOff+node._w+HUB_GAP+LEVEL_GAP;
+      var fy=null,ly=null;
+      for(var i=0;i<node.children.length;i++){
+        place(node.children[i],depth+1,node.id,cxOff);
+        var cy=nodes[node.children[i].id].y;
+        if(fy===null) fy=cy; ly=cy;
+      }
+      y=(fy+ly)/2;
+    }
+    nodes[node.id]={node:node,x:xOff,y:y,w:node._w,h:BOX_H,depth:depth,parentId:parentId,
+      hasChildren:!!(node.children&&node.children.length)};
+  }
+  place(tree,0,null,0);
+  var edges=[];
+  (function collectEdges(n){
+    if(n.children&&!n.collapsed){
+      n.children.forEach(function(c){
+        edges.push({id:n.id+"__"+c.id,parentId:n.id,childId:c.id,depth:nodes[n.id].depth});
+        collectEdges(c);
+      });
+    }
+  })(tree);
+  return {nodes:nodes,edges:edges};
+}
+
+/* ================================================================
+   SVG HELPERS
+================================================================ */
+function mmSvgEl(tag){ return document.createElementNS("http://www.w3.org/2000/svg",tag); }
+function mmEdgeColor(d){ return EDGE_COLORS[Math.min(d,EDGE_COLORS.length-1)]; }
+function mmNodeColors(d){
+  if(d===0) return {fill:"var(--mm-node-root)",text:"var(--mm-node-root-text)"};
+  if(d===1) return {fill:"var(--mm-node-mid)",text:"var(--mm-node-mid-text)"};
+  return {fill:"var(--mm-node-leaf)",text:"var(--mm-node-leaf-text)"};
+}
+function mmBezier(x1,y1,x2,y2){
+  var dx=Math.max(24,(x2-x1)*0.5);
+  return "M "+x1+","+y1+" C "+(x1+dx)+","+y1+" "+(x2-dx)+","+y2+" "+x2+","+y2;
+}
+function mmSetTf(el,x,y,op){
+  el.style.transform="translate("+x+"px,"+y+"px)";
+  if(op!==undefined) el.style.opacity=op;
+}
+function mmAnchor(item)  { return {x:item.x+item.w+HUB_GAP, y:item.y}; }
+function mmInAnchor(item){ return {x:item.x,             y:item.y}; }
+
+/* ================================================================
+   CREATE NODE GROUP
+================================================================ */
+function mmCreateNodeGroup(item){
+  var node=item.node;
+  var colors=mmNodeColors(item.depth);
+  var isRoot=(item.depth===0);
+  var g=mmSvgEl("g");
+  g.setAttribute("class","mm-node-group");
+  g.setAttribute("data-nid",node.id);
+
+  /* Background rect */
+  var rect=mmSvgEl("rect");
+  rect.setAttribute("class","mm-node-rect");
+  rect.setAttribute("width",item.w);
+  rect.setAttribute("height",item.h);
+  rect.setAttribute("y",-item.h/2);
+  rect.setAttribute("rx",10);
+  rect.setAttribute("fill",colors.fill);
+  g.appendChild(rect);
+
+  /* Checkbox (non-root) */
+  var cbRect=null, cbCheck=null;
+  if(!isRoot){
+    var cbg=mmSvgEl("g");
+    cbg.setAttribute("class","mm-checkbox-group");
+
+    cbRect=mmSvgEl("rect");
+    cbRect.setAttribute("x",CB_X); cbRect.setAttribute("y",-CB_SIZE/2);
+    cbRect.setAttribute("width",CB_SIZE); cbRect.setAttribute("height",CB_SIZE);
+    cbRect.setAttribute("rx",3);
+    cbRect.setAttribute("fill", node.checked?"var(--mm-check-ok)":"rgba(255,255,255,0.18)");
+    cbRect.setAttribute("stroke","rgba(255,255,255,0.45)");
+    cbRect.setAttribute("stroke-width","1.5");
+    cbg.appendChild(cbRect);
+
+    cbCheck=mmSvgEl("text");
+    cbCheck.setAttribute("x",CB_X+CB_SIZE/2); cbCheck.setAttribute("y",1);
+    cbCheck.setAttribute("text-anchor","middle"); cbCheck.setAttribute("dominant-baseline","middle");
+    cbCheck.setAttribute("font-size","10"); cbCheck.setAttribute("fill","#fff");
+    cbCheck.setAttribute("font-weight","bold");
+    cbCheck.style.pointerEvents="none";
+    cbCheck.style.display=node.checked?"":"none";
+    cbCheck.textContent="✓";
+    cbg.appendChild(cbCheck);
+
+    cbg.addEventListener("click",function(ev){ ev.stopPropagation(); mmToggleCheck(node.id); });
+    g.appendChild(cbg);
+  }
+
+  /* Text */
+  var textX=isRoot ? PAD_X : CB_TOTAL+CB_X;
+  var text=mmSvgEl("text");
+  text.setAttribute("class","mm-node-text");
+  text.setAttribute("x",textX); text.setAttribute("y",1);
+  text.setAttribute("fill",colors.text);
+  text.textContent=node.name;
+  g.appendChild(text);
+
+  /* Strikethrough */
+  var strikeEl=null;
+  if(!isRoot){
+    strikeEl=mmSvgEl("line");
+    strikeEl.setAttribute("class","mm-node-strike");
+    var textContentW=Math.ceil(MEASURE_CTX.measureText(node.name).width);
+    strikeEl.setAttribute("x1",textX);
+    strikeEl.setAttribute("y1","1");
+    strikeEl.setAttribute("x2",textX+textContentW);
+    strikeEl.setAttribute("y2","1");
+    strikeEl.setAttribute("stroke",colors.text);
+    strikeEl.setAttribute("stroke-width","1.8");
+    strikeEl.style.display=node.checked?"":"none";
+    g.appendChild(strikeEl);
+  }
+
+  /* Expand/collapse toggle */
+  var toggleGlyph=null;
+  if(item.hasChildren){
+    var tg=mmSvgEl("g");
+    tg.setAttribute("class","mm-toggle-group");
+    var circle=mmSvgEl("circle");
+    circle.setAttribute("class","mm-toggle-circle");
+    circle.setAttribute("cx",item.w+HUB_GAP/2); circle.setAttribute("cy",0); circle.setAttribute("r",10);
+    circle.setAttribute("fill",mmEdgeColor(item.depth));
+    tg.appendChild(circle);
+
+    toggleGlyph=mmSvgEl("text");
+    toggleGlyph.setAttribute("class","mm-toggle-glyph");
+    toggleGlyph.setAttribute("x",item.w+HUB_GAP/2); toggleGlyph.setAttribute("y",1);
+    toggleGlyph.textContent=node.collapsed?"›":"‹";
+    tg.appendChild(toggleGlyph);
+
+    tg.addEventListener("click",function(ev){ ev.stopPropagation(); mmToggleNode(node.id); });
+    g.appendChild(tg);
+  }
+
+  /* Double-click → inline rename */
+  g.addEventListener("dblclick",function(ev){
+    if(ev.target.closest(".mm-checkbox-group")||ev.target.closest(".mm-toggle-group")) return;
+    ev.stopPropagation();
+    var li=mmPrevLayout&&mmPrevLayout.nodes[node.id];
+    if(li) mmStartInlineEdit(node,li,g);
+  });
+
+  /* Right-click → context menu */
+  g.addEventListener("contextmenu",function(ev){
+    ev.preventDefault(); ev.stopPropagation();
+    mmShowContextMenu(ev.clientX,ev.clientY,node.id);
+  });
+
+  elNodesLayer.appendChild(g);
+  return {g:g,rect:rect,text:text,cbRect:cbRect,cbCheck:cbCheck,strikeEl:strikeEl,toggleGlyph:toggleGlyph};
+}
+
+/* ================================================================
+   INLINE EDIT (foreignObject input)
+================================================================ */
+function mmStartInlineEdit(node,item,groupEl){
+  if(!node||!item||!groupEl) return;
+  /* Remove any existing inline inputs */
+  var existing=groupEl.querySelector("foreignObject");
+  if(existing) groupEl.removeChild(existing);
+
+  var fo=mmSvgEl("foreignObject");
+  fo.setAttribute("x",2); fo.setAttribute("y",-item.h/2+2);
+  fo.setAttribute("width",item.w-4); fo.setAttribute("height",item.h-4);
+
+  var ns="http://www.w3.org/1999/xhtml";
+  var inp=document.createElementNS(ns,"input");
+  inp.type="text"; inp.value=node.name;
+  inp.setAttribute("class","mm-inline-input");
+  fo.appendChild(inp);
+  groupEl.appendChild(fo);
+
+  requestAnimationFrame(function(){ inp.focus(); inp.select(); });
+
+  var done=false;
+  function finish(){
+    if(done) return; done=true;
+    var nv=inp.value.trim();
+    if(fo.parentNode) fo.parentNode.removeChild(fo);
+    if(nv&&nv!==node.name){
+      node.name=nv;
+      node._w=null;
+      mmRender();
+      mmPersistCurrent();
+    }
+  }
+  inp.addEventListener("keydown",function(ev){
+    ev.stopPropagation();
+    if(ev.key==="Enter") finish();
+    if(ev.key==="Escape"){ done=true; if(fo.parentNode) fo.parentNode.removeChild(fo); }
+  });
+  inp.addEventListener("blur",finish);
+}
+
+/* ================================================================
+   CONTEXT MENU
+================================================================ */
+function mmShowContextMenu(cx,cy,nodeId){
+  var rr=root.getBoundingClientRect();
+  mmCtxNodeId=nodeId;
+  var isRoot=(mmState.tree&&mmState.tree.id===nodeId);
+  $("mmCtxRename").style.display=isRoot?"none":"";
+  $("mmCtxDelete").style.display=isRoot?"none":"";
+  var lx=cx-rr.left, ly=cy-rr.top;
+  /* Clamp so menu doesn't overflow */
+  var mw=180, mh=120;
+  if(lx+mw>rr.width)  lx=rr.width-mw-8;
+  if(ly+mh>rr.height) ly=rr.height-mh-8;
+  elContextMenu.style.left=lx+"px";
+  elContextMenu.style.top=ly+"px";
+  elContextMenu.style.display="block";
+}
+function mmHideContextMenu(){
+  elContextMenu.style.display="none"; mmCtxNodeId=null;
+}
+document.addEventListener("click",function(ev){
+  if(!elContextMenu.contains(ev.target)) mmHideContextMenu();
+});
+$("mmCtxRename").addEventListener("click",function(){
+  var id=mmCtxNodeId; mmHideContextMenu();
+  if(!id) return;
+  var node=mmFindNode(mmState.tree,id);
+  var li=mmPrevLayout&&mmPrevLayout.nodes[id];
+  var rec=mmState.dom.nodes[id];
+  if(node&&li&&rec) mmStartInlineEdit(node,li,rec.g);
+});
+$("mmCtxAddChild").addEventListener("click",function(){
+  var id=mmCtxNodeId; mmHideContextMenu();
+  if(!id) return;
+  var parent=mmFindNode(mmState.tree,id);
+  if(!parent) return;
+  var name=window.prompt("Child node name:");
+  if(!name||!name.trim()) return;
+  if(!parent.children) parent.children=[];
+  parent.children.push({
+    id:"n"+(mmState.idCounter++), name:name.trim(),
+    children:[], checked:false, collapsed:false
+  });
+  parent.collapsed=false;
+  mmRender(); mmPersistCurrent();
+});
+$("mmCtxDelete").addEventListener("click",function(){
+  var id=mmCtxNodeId; mmHideContextMenu();
+  if(!id) return;
+  if(mmState.tree&&mmState.tree.id===id){ alert("Cannot delete the root node."); return; }
+  if(!confirm("Delete this node and all its children?")) return;
+  function rm(parent,tid){
+    if(!parent.children) return false;
+    for(var i=0;i<parent.children.length;i++){
+      if(parent.children[i].id===tid){ parent.children.splice(i,1); return true; }
+      if(rm(parent.children[i],tid)) return true;
+    }
+    return false;
+  }
+  rm(mmState.tree,id);
+  mmRender(); mmPersistCurrent();
+});
+
+/* ================================================================
+   MAIN RENDER
+================================================================ */
+function mmRender(){
+  if(!mmState.tree) return;
+  var layout=mmComputeLayout(mmState.tree);
+  var prev=mmPrevLayout;
+  var seenN={}, seenE={};
+
+  /* NODES */
+  Object.keys(layout.nodes).forEach(function(id){
+    var item=layout.nodes[id];
+    seenN[id]=true;
+    var rec=mmState.dom.nodes[id];
+    if(!rec){
+      /* New node */
+      rec=mmCreateNodeGroup(item);
+      mmState.dom.nodes[id]=rec;
+      var sx=item.x, sy=item.y;
+      if(prev&&item.parentId&&prev.nodes[item.parentId]){
+        sx=prev.nodes[item.parentId].x; sy=prev.nodes[item.parentId].y;
+      }
+      mmSetTf(rec.g,sx,sy,0);
+      rec.g.style.transition="none";
+      void rec.g.getBoundingClientRect();
+      rec.g.style.transition="";
+      requestAnimationFrame(function(){ mmSetTf(rec.g,item.x,item.y,1); });
+    } else {
+      /* Update existing */
+      if(rec.toggleGlyph) rec.toggleGlyph.textContent=item.node.collapsed?"›":"‹";
+      if(!isNaN(item.depth)&&item.depth>0){
+        if(rec.cbRect){
+          var ck=!!item.node.checked;
+          rec.cbRect.setAttribute("fill",ck?"var(--mm-check-ok)":"rgba(255,255,255,0.18)");
+          if(rec.cbCheck) rec.cbCheck.style.display=ck?"":"none";
+          if(rec.strikeEl) rec.strikeEl.style.display=ck?"":"none";
+        }
+      }
+      mmSetTf(rec.g,item.x,item.y,1);
+    }
+  });
+
+  /* Remove hidden nodes */
+  Object.keys(mmState.dom.nodes).forEach(function(id){
+    if(seenN[id]) return;
+    var rec=mmState.dom.nodes[id];
+    var tx=0, ty=0;
+    if(prev&&prev.nodes[id]){
+      var pid=prev.nodes[id].parentId;
+      if(pid&&layout.nodes[pid]){ tx=layout.nodes[pid].x; ty=layout.nodes[pid].y; }
+      else if(pid&&prev.nodes[pid]){ tx=prev.nodes[pid].x; ty=prev.nodes[pid].y; }
+    }
+    mmSetTf(rec.g,tx,ty,0);
+    (function(el){
+      el.addEventListener("transitionend",function h(){ el.removeEventListener("transitionend",h); if(el.parentNode) el.parentNode.removeChild(el); });
+    })(rec.g);
+    delete mmState.dom.nodes[id];
+  });
+
+  /* EDGES */
+  layout.edges.forEach(function(e){
+    seenE[e.id]=true;
+    var p=layout.nodes[e.parentId], c=layout.nodes[e.childId];
+    var a=mmAnchor(p), b=mmInAnchor(c);
+    var d=mmBezier(a.x,a.y,b.x,b.y);
+    var path=mmState.dom.edges[e.id];
+    if(!path){
+      path=mmSvgEl("path");
+      path.setAttribute("class","mm-edge-path");
+      path.setAttribute("stroke",mmEdgeColor(p.depth));
+      elEdgesLayer.appendChild(path);
+      mmState.dom.edges[e.id]=path;
+      path.style.opacity=0;
+      var sa=(prev&&prev.nodes[e.parentId]) ? mmAnchor(prev.nodes[e.parentId]) : a;
+      path.setAttribute("d",mmBezier(sa.x,sa.y,sa.x,sa.y));
+      requestAnimationFrame(function(){ path.setAttribute("d",d); path.style.opacity=0.9; });
+    } else {
+      path.setAttribute("d",d); path.style.opacity=0.9;
+    }
+  });
+
+  Object.keys(mmState.dom.edges).forEach(function(id){
+    if(seenE[id]) return;
+    var path=mmState.dom.edges[id];
+    path.style.opacity=0;
+    (function(el){ el.addEventListener("transitionend",function h(){ el.removeEventListener("transitionend",h); if(el.parentNode) el.parentNode.removeChild(el); }); })(path);
+    delete mmState.dom.edges[id];
+  });
+
+  mmPrevLayout=layout;
+}
+
+/* Toggle expand/collapse */
+function mmToggleNode(id){
+  (function walk(n){
+    if(n.id===id){ n.collapsed=!n.collapsed; return true; }
+    if(n.children){ for(var i=0;i<n.children.length;i++){ if(walk(n.children[i])) return true; } }
+    return false;
+  })(mmState.tree);
+  mmRender(); mmPersistCurrent();
+}
+function mmSetAllCollapsed(v){
+  (function walk(n,d){ if(d>0) n.collapsed=v; if(n.children) n.children.forEach(function(c){walk(c,d+1);}); })(mmState.tree,0);
+  mmRender(); mmPersistCurrent();
+}
+
+/* ================================================================
+   STATIC RENDER (for edit preview — no transitions, no events)
+================================================================ */
+function mmStaticRender(tree,nodesLayer,edgesLayer,svgEl){
+  nodesLayer.innerHTML=""; edgesLayer.innerHTML="";
+  if(!tree) return;
+  var layout=mmComputeLayout(tree);
+  var items=Object.keys(layout.nodes).map(function(k){return layout.nodes[k];});
+  if(!items.length) return;
+
+  /* Compute viewBox from layout */
+  var mn={x:Infinity,y:Infinity}, mx={x:-Infinity,y:-Infinity};
+  items.forEach(function(it){
+    mn.x=Math.min(mn.x,it.x); mn.y=Math.min(mn.y,it.y-it.h/2);
+    mx.x=Math.max(mx.x,it.x+it.w+HUB_GAP+10); mx.y=Math.max(mx.y,it.y+it.h/2);
+  });
+  var pad=24;
+  svgEl.setAttribute("viewBox",(mn.x-pad)+" "+(mn.y-pad)+" "+(mx.x-mn.x+pad*2)+" "+(mx.y-mn.y+pad*2));
+
+  /* Nodes */
+  items.forEach(function(item){
+    var node=item.node;
+    var colors=mmNodeColors(item.depth);
+    var isRoot=(item.depth===0);
+    var g=mmSvgEl("g");
+    g.setAttribute("class","mm-node-group");
+    g.style.transform="translate("+item.x+"px,"+item.y+"px)";
+    g.style.transition="none"; g.style.cursor="default";
+
+    var rect=mmSvgEl("rect");
+    rect.setAttribute("class","mm-node-rect");
+    rect.setAttribute("width",item.w); rect.setAttribute("height",item.h);
+    rect.setAttribute("y",-item.h/2); rect.setAttribute("rx",10);
+    rect.setAttribute("fill",colors.fill);
+    g.appendChild(rect);
+
+    if(!isRoot){
+      var cbr=mmSvgEl("rect");
+      cbr.setAttribute("x",CB_X); cbr.setAttribute("y",-CB_SIZE/2);
+      cbr.setAttribute("width",CB_SIZE); cbr.setAttribute("height",CB_SIZE);
+      cbr.setAttribute("rx",3);
+      cbr.setAttribute("fill",node.checked?"var(--mm-check-ok)":"rgba(255,255,255,0.18)");
+      cbr.setAttribute("stroke","rgba(255,255,255,0.4)"); cbr.setAttribute("stroke-width","1.5");
+      g.appendChild(cbr);
+      if(node.checked){
+        var cbt=mmSvgEl("text");
+        cbt.setAttribute("x",CB_X+CB_SIZE/2); cbt.setAttribute("y",1);
+        cbt.setAttribute("text-anchor","middle"); cbt.setAttribute("dominant-baseline","middle");
+        cbt.setAttribute("font-size","10"); cbt.setAttribute("fill","#fff");
+        cbt.setAttribute("font-weight","bold"); cbt.style.pointerEvents="none";
+        cbt.textContent="✓"; g.appendChild(cbt);
+      }
+    }
+
+    var textX=isRoot?PAD_X:CB_TOTAL+CB_X;
+    var txt=mmSvgEl("text");
+    txt.setAttribute("class","mm-node-text");
+    txt.setAttribute("x",textX); txt.setAttribute("y",1);
+    txt.setAttribute("fill",colors.text);
+    txt.textContent=node.name;
+    g.appendChild(txt);
+
+    if(!isRoot&&node.checked){
+      var tw=Math.ceil(MEASURE_CTX.measureText(node.name).width);
+      var sl=mmSvgEl("line");
+      sl.setAttribute("class","mm-node-strike");
+      sl.setAttribute("x1",textX); sl.setAttribute("y1","1");
+      sl.setAttribute("x2",textX+tw); sl.setAttribute("y2","1");
+      sl.setAttribute("stroke",colors.text); sl.setAttribute("stroke-width","1.8");
+      g.appendChild(sl);
+    }
+
+    if(item.hasChildren){
+      var circle=mmSvgEl("circle");
+      circle.setAttribute("class","mm-toggle-circle");
+      circle.setAttribute("cx",item.w+HUB_GAP/2); circle.setAttribute("cy",0); circle.setAttribute("r",10);
+      circle.setAttribute("fill",mmEdgeColor(item.depth));
+      g.appendChild(circle);
+      var gl=mmSvgEl("text");
+      gl.setAttribute("class","mm-toggle-glyph");
+      gl.setAttribute("x",item.w+HUB_GAP/2); gl.setAttribute("y",1);
+      gl.textContent=node.collapsed?"›":"‹";
+      g.appendChild(gl);
+    }
+    nodesLayer.appendChild(g);
+  });
+
+  /* Edges */
+  layout.edges.forEach(function(e){
+    var p=layout.nodes[e.parentId], c=layout.nodes[e.childId];
+    if(!p||!c) return;
+    var path=mmSvgEl("path");
+    path.setAttribute("class","mm-edge-path");
+    path.setAttribute("stroke",mmEdgeColor(p.depth));
+    path.setAttribute("d",mmBezier(mmAnchor(p).x,mmAnchor(p).y,mmInAnchor(c).x,mmInAnchor(c).y));
+    path.style.opacity="0.9";
+    edgesLayer.appendChild(path);
+  });
+}
+
+/* ================================================================
+   PAN / ZOOM
+================================================================ */
+function mmApplyViewport(){
+  elViewport.style.transform="translate("+mmState.tx+"px,"+mmState.ty+"px) scale("+mmState.scale+")";
+  elZoomLabel.textContent=Math.round(mmState.scale*100)+"%";
+}
+function mmZoomAt(cx,cy,factor){
+  var rect=elSvg.getBoundingClientRect();
+  var px=cx-rect.left, py=cy-rect.top;
+  var ns=Math.min(2.5,Math.max(0.12,mmState.scale*factor));
+  var r=ns/mmState.scale;
+  mmState.tx=px-(px-mmState.tx)*r;
+  mmState.ty=py-(py-mmState.ty)*r;
+  mmState.scale=ns;
+  mmApplyViewport();
+}
+function mmResetView(){
+  mmState.scale=1; mmState.tx=60; mmState.ty=(elSvg.clientHeight||560)/2;
+  mmApplyViewport();
+}
+
+elSvg.addEventListener("wheel",function(ev){
+  ev.preventDefault();
+  mmZoomAt(ev.clientX,ev.clientY, ev.deltaY<0?1.1:0.9);
+},{passive:false});
+
+elSvg.addEventListener("mousedown",function(ev){
+  if(ev.target.closest(".mm-node-group")) return;
+  mmHideContextMenu();
+  mmState.isPanning=true;
+  mmState.panStart={x:ev.clientX,y:ev.clientY,tx:mmState.tx,ty:mmState.ty};
+  elSvg.classList.add("mm-grabbing");
+});
+window.addEventListener("mousemove",function(ev){
+  if(!mmState.isPanning) return;
+  mmState.tx=mmState.panStart.tx+(ev.clientX-mmState.panStart.x);
+  mmState.ty=mmState.panStart.ty+(ev.clientY-mmState.panStart.y);
+  mmApplyViewport();
+});
+window.addEventListener("mouseup",function(){
+  mmState.isPanning=false; elSvg.classList.remove("mm-grabbing");
+});
+
+/* Touch */
+var mmTouch={last:null,dist:null};
+elSvg.addEventListener("touchstart",function(ev){
+  if(ev.touches.length===1) mmTouch.last={x:ev.touches[0].clientX,y:ev.touches[0].clientY};
+  else if(ev.touches.length===2) mmTouch.dist=mmTDist(ev.touches);
+},{passive:true});
+elSvg.addEventListener("touchmove",function(ev){
+  if(ev.touches.length===1&&mmTouch.last){
+    var t=ev.touches[0];
+    mmState.tx+=t.clientX-mmTouch.last.x; mmState.ty+=t.clientY-mmTouch.last.y;
+    mmTouch.last={x:t.clientX,y:t.clientY}; mmApplyViewport();
+  } else if(ev.touches.length===2&&mmTouch.dist){
+    var nd=mmTDist(ev.touches);
+    var cx=(ev.touches[0].clientX+ev.touches[1].clientX)/2;
+    var cy=(ev.touches[0].clientY+ev.touches[1].clientY)/2;
+    mmZoomAt(cx,cy,nd/mmTouch.dist); mmTouch.dist=nd;
+  }
+  ev.preventDefault();
+},{passive:false});
+function mmTDist(t){ var dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+
+$("mmZoomIn").addEventListener("click",function(){ mmZoomAt(elSvg.clientWidth/2,elSvg.clientHeight/2,1.2); });
+$("mmZoomOut").addEventListener("click",function(){ mmZoomAt(elSvg.clientWidth/2,elSvg.clientHeight/2,0.8); });
+$("mmZoomReset").addEventListener("click",mmResetView);
+$("mmCollapseAll").addEventListener("click",function(){ if(mmState.tree) mmSetAllCollapsed(true); });
+$("mmExpandAll").addEventListener("click",function(){ if(mmState.tree) mmSetAllCollapsed(false); });
+
+/* ================================================================
+   SIDEBAR
+================================================================ */
+function mmRenderFileList(){
+  elFileList.innerHTML="";
+  if(!mmState.maps.length){
+    var e=document.createElement("div"); e.className="mm-file-empty";
+    e.textContent="No maps yet. Click ＋ to create one.";
+    elFileList.appendChild(e); return;
+  }
+  mmState.maps.slice().sort(function(a,b){return b.ts-a.ts;}).forEach(function(m){
+    var item=document.createElement("div");
+    item.className="mm-file-item"+(m.id===mmState.currentId?" mm-active":"");
+    var nm=document.createElement("span"); nm.className="mm-file-name"; nm.textContent=m.name;
+    var dl=document.createElement("span"); dl.className="mm-file-del"; dl.textContent="✕"; dl.title="Delete";
+    dl.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      if(!confirm('Delete "'+m.name+'"?')) return;
+      mmDeleteMapData(m.id);
+      mmState.maps=mmState.maps.filter(function(x){return x.id!==m.id;});
+      mmSaveIndex();
+      if(mmState.currentId===m.id){ mmState.currentId=null; mmState.tree=null; mmClearCanvas(); elCurrentTitle.textContent="No map selected"; elEmptyState.style.display="flex"; }
+      mmRenderFileList();
+    });
+    item.appendChild(nm); item.appendChild(dl);
+    item.addEventListener("click",function(){ mmOpenMap(m.id); });
+    elFileList.appendChild(item);
+  });
+}
+
+function mmClearCanvas(){
+  elNodesLayer.innerHTML=""; elEdgesLayer.innerHTML="";
+  mmState.dom={nodes:{},edges:{}}; mmPrevLayout=null;
+}
+
+function mmOpenMap(id){
+  var data=mmLoadMapData(id);
+  if(!data) return;
+  mmState.currentId=id; mmState.tree=data; mmState.idCounter=0;
+  (function ensure(n){
+    if(!n.id) n.id="n"+(mmState.idCounter++);
+    else{ var num=parseInt(n.id.replace("n",""),10); if(!isNaN(num)) mmState.idCounter=Math.max(mmState.idCounter,num+1); }
+    if(!n.children) n.children=[];
+    if(n.collapsed===undefined) n.collapsed=false;
+    if(n.checked===undefined)   n.checked=false;
+    n.children.forEach(ensure);
+  })(data);
+  mmClearCanvas();
+  elEmptyState.style.display="none";
+  var meta=mmState.maps.find(function(m){return m.id===id;});
+  elCurrentTitle.textContent=meta?meta.name:data.name;
+  mmResetView(); mmRender(); mmRenderFileList();
+}
+
+function mmPersistCurrent(){
+  if(!mmState.currentId||!mmState.tree) return;
+  mmSaveMapData(mmState.currentId,mmState.tree);
+}
+
+/* ================================================================
+   NEW MAP MODAL
+================================================================ */
+function mmOpenModal(){
+  elNameInput.value=""; elTextInput.value=""; elModalError.textContent="";
+  mmSetNewMode("indent");
+  elModalOverlay.classList.add("mm-open");
+  setTimeout(function(){ elNameInput.focus(); },30);
+}
+function mmCloseModal(){ elModalOverlay.classList.remove("mm-open"); }
+
+function mmSetNewMode(m){
+  mmNewMode=m;
+  elTabIndent.classList.toggle("mm-active",m==="indent");
+  elTabJson.classList.toggle("mm-active",m==="json");
+  if(m==="json"){
+    elTextInput.placeholder='{\n  "name": "Root Node",\n  "children": [\n    {\n      "name": "Branch",\n      "children": [\n        { "name": "Leaf A" },\n        { "name": "Leaf B" }\n      ]\n    },\n    { "name": "Another Branch" }\n  ]\n}';
+    elFormatHint.textContent='Acceptable JSON: { "name": "Root", "children": [ { "name": "Child", "children": [ ... ] } ] } — every node needs "name"; "children" is optional.';
+  } else {
+    elTextInput.placeholder="Root\n    Branch 1\n        Leaf A\n        Leaf B\n    Branch 2\n        Leaf C";
+    elFormatHint.textContent='Each line = a node. Indent with spaces or tabs to nest under the line above it. The very first line becomes the root.';
+  }
+}
+
+elTabIndent.addEventListener("click",function(){ mmSetNewMode("indent"); });
+elTabJson.addEventListener("click",function(){ mmSetNewMode("json"); });
+$("mmLoadExampleBtn").addEventListener("click",function(){
+  elTextInput.value=mmNewMode==="json"?EXAMPLE_JSON:EXAMPLE_INDENT;
+  if(!elNameInput.value) elNameInput.value="Adversarial Machine Learning";
+});
+$("mmNewBtn").addEventListener("click",mmOpenModal);
+$("mmEmptyNewBtn").addEventListener("click",mmOpenModal);
+$("mmCancelBtn").addEventListener("click",mmCloseModal);
+elModalOverlay.addEventListener("click",function(ev){ if(ev.target===elModalOverlay) mmCloseModal(); });
+$("mmSaveBtn").addEventListener("click",function(){
+  var name=elNameInput.value.trim();
+  if(!name){ elModalError.textContent="Please give the map a name."; return; }
+  var tree;
+  try{ tree=mmParseInput(elTextInput.value,mmNewMode); }
+  catch(err){ elModalError.textContent="Parse error: "+err.message; return; }
+  var id="m"+Date.now();
+  mmState.maps.push({id:id,name:name,ts:Date.now()});
+  mmSaveIndex(); mmSaveMapData(id,tree); mmCloseModal(); mmOpenMap(id);
+});
+
+/* ================================================================
+   EDIT MAP MODAL (with live preview)
+================================================================ */
+function mmOpenEditModal(){
+  if(!mmState.tree){ alert("Open a mind map first."); return; }
+  var meta=mmState.maps.find(function(m){return m.id===mmState.currentId;});
+  elEditNameInput.value=meta?meta.name:mmState.tree.name;
+  elEditError.textContent="";
+  mmSetEditMode("indent");
+  elEditTextarea.value=mmTreeToStr(mmState.tree);
+  elEditOverlay.classList.add("mm-open");
+  mmUpdateEditPreview();
+  setTimeout(function(){ elEditTextarea.focus(); },30);
+}
+function mmCloseEditModal(){ elEditOverlay.classList.remove("mm-open"); }
+
+function mmSetEditMode(m){
+  mmEditMode=m;
+  elEditTabIndent.classList.toggle("mm-active",m==="indent");
+  elEditTabJson.classList.toggle("mm-active",m==="json");
+  if(m==="json"){
+    elEditFormatHint.textContent='JSON format: { "name": "Root", "children": [ { "name": "Child", "children": [...] } ] }';
+  } else {
+    elEditFormatHint.textContent='Indent format: one node per line, indent with spaces/tabs to nest. Edit above → live preview on the right.';
+  }
+}
+
+function mmUpdateEditPreview(){
+  var text=elEditTextarea.value.trim();
+  elEditError.textContent="";
+  if(!text){ elPreviewNodes.innerHTML=""; elPreviewEdges.innerHTML=""; return; }
+  try{
+    /* Save and restore idCounter so preview IDs don't pollute the real tree */
+    var savedCounter=mmState.idCounter;
+    var previewTree=mmParseInput(text,mmEditMode);
+    mmState.idCounter=savedCounter;
+    mmStaticRender(previewTree,elPreviewNodes,elPreviewEdges,elPreviewSvg);
+  }catch(e){
+    elEditError.textContent="Preview error: "+e.message;
+  }
+}
+
+elEditTextarea.addEventListener("input",function(){
+  clearTimeout(mmEditDebounceTimer);
+  mmEditDebounceTimer=setTimeout(mmUpdateEditPreview,350);
+});
+elEditTabIndent.addEventListener("click",function(){ mmSetEditMode("indent"); mmUpdateEditPreview(); });
+elEditTabJson.addEventListener("click",function(){ mmSetEditMode("json"); mmUpdateEditPreview(); });
+elEditOverlay.addEventListener("click",function(ev){ if(ev.target===elEditOverlay) mmCloseEditModal(); });
+$("mmEditCancelBtn").addEventListener("click",mmCloseEditModal);
+$("mmEditMapBtn").addEventListener("click",mmOpenEditModal);
+
+$("mmEditSaveBtn").addEventListener("click",function(){
+  var name=elEditNameInput.value.trim();
+  if(!name){ elEditError.textContent="Map needs a name."; return; }
+  var newTree;
+  try{
+    mmState.idCounter=0;
+    newTree=mmParseInput(elEditTextarea.value,mmEditMode);
+  }catch(e){ elEditError.textContent="Parse error: "+e.message; return; }
+  /* Preserve checked/collapsed where possible */
+  if(mmState.tree) mmPreserveStates(mmState.tree,newTree);
+  mmState.tree=newTree;
+  /* Update name */
+  var meta=mmState.maps.find(function(m){return m.id===mmState.currentId;});
+  if(meta) meta.name=name;
+  mmSaveIndex();
+  elCurrentTitle.textContent=name;
+  mmPersistCurrent();
+  mmCloseEditModal();
+  mmClearCanvas();
+  mmResetView();
+  mmRender();
+  mmRenderFileList();
+});
+
+/* ================================================================
+   EXPORT JSON
+================================================================ */
+$("mmExportBtn").addEventListener("click",function(){
+  if(!mmState.tree){ alert("Open a mind map first."); return; }
+  function strip(n){
+    var o={name:n.name};
+    if(n.children&&n.children.length) o.children=n.children.map(strip);
+    return o;
+  }
+  var blob=new Blob([JSON.stringify(strip(mmState.tree),null,2)],{type:"application/json"});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a"); a.href=url;
+  a.download=(elCurrentTitle.textContent||"mindmap").replace(/[^\w\-]+/g,"_")+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); },2000);
+});
+
+/* ================================================================
+   DOWNLOAD PNG
+================================================================ */
+$("mmDownloadPng").addEventListener("click",function(){
+  if(!mmState.tree){ alert("Open a mind map first."); return; }
+
+  /* Gather CSS variable values */
+  var cs=getComputedStyle(root);
+  var vars={};
+  ["--mm-canvas","--mm-node-root","--mm-node-root-text","--mm-node-mid","--mm-node-mid-text",
+   "--mm-node-leaf","--mm-node-leaf-text","--mm-edge-1","--mm-edge-2","--mm-edge-3",
+   "--mm-border","--mm-text","--mm-accent","--mm-check-ok"].forEach(function(n){
+    vars[n]=cs.getPropertyValue(n).trim();
+  });
+
+  /* Get content bounding box from layout */
+  if(!mmPrevLayout) return;
+  var items=Object.keys(mmPrevLayout.nodes).map(function(k){return mmPrevLayout.nodes[k];});
+  if(!items.length){ alert("Nothing to export."); return; }
+  var mn={x:Infinity,y:Infinity}, mx={x:-Infinity,y:-Infinity};
+  items.forEach(function(it){
+    mn.x=Math.min(mn.x,it.x); mn.y=Math.min(mn.y,it.y-it.h/2);
+    mx.x=Math.max(mx.x,it.x+it.w+HUB_GAP+20); mx.y=Math.max(mx.y,it.y+it.h/2);
+  });
+
+  var pad=50, dpr=2.5;
+  var cW=(mx.x-mn.x+pad*2), cH=(mx.y-mn.y+pad*2);
+  var W=Math.ceil(cW*dpr), H=Math.ceil(cH*dpr);
+
+  /* Clone SVG */
+  var cloned=elSvg.cloneNode(true);
+  cloned.setAttribute("width",W); cloned.setAttribute("height",H);
+  cloned.setAttribute("xmlns","http://www.w3.org/2000/svg");
+  cloned.style.cssText="";
+
+  /* Fix viewport transform: map layout space to the export canvas */
+  var vp=cloned.querySelector("#mmViewport");
+  var tx=(-mn.x+pad)*dpr, ty=(-mn.y+pad)*dpr;
+  vp.style.cssText="";
+  vp.setAttribute("transform","translate("+tx+","+ty+") scale("+dpr+")");
+
+  /* Resolve CSS variables inline */
+  function resolveEl(el){
+    ["fill","stroke"].forEach(function(a){
+      var v=el.getAttribute(a);
+      if(v&&v.indexOf("var(")!==-1){
+        el.setAttribute(a,v.replace(/var\((--[^)]+)\)/g,function(_,k){ return vars[k]||"transparent"; }));
+      }
+    });
+    if(el.style){
+      ["fill","stroke"].forEach(function(p){
+        if(el.style[p]&&el.style[p].indexOf("var(")!==-1){
+          el.style[p]=el.style[p].replace(/var\((--[^)]+)\)/g,function(_,k){ return vars[k]||"transparent"; });
+        }
+      });
+      el.style.transition="none";
+      el.style.filter="none";
+    }
+    Array.from(el.children).forEach(resolveEl);
+  }
+  resolveEl(cloned);
+
+  /* Add background */
+  var bg=document.createElementNS("http://www.w3.org/2000/svg","rect");
+  bg.setAttribute("width",W); bg.setAttribute("height",H);
+  bg.setAttribute("fill",vars["--mm-canvas"]);
+  cloned.insertBefore(bg,cloned.firstChild);
+
+  /* Serialize → Blob → Image → Canvas → PNG */
+  var svgStr=new XMLSerializer().serializeToString(cloned);
+  var blob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
+  var url=URL.createObjectURL(blob);
+  var img=new Image();
+  img.onload=function(){
+    var canvas=document.createElement("canvas");
+    canvas.width=W; canvas.height=H;
+    var ctx=canvas.getContext("2d");
+    ctx.fillStyle=vars["--mm-canvas"];
+    ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    var link=document.createElement("a");
+    link.download=(elCurrentTitle.textContent||"mindmap").replace(/[^\w\-]+/g,"_")+".png";
+    link.href=canvas.toDataURL("image/png",1.0);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  };
+  img.onerror=function(){ URL.revokeObjectURL(url); alert("PNG export failed. Try JSON export instead."); };
+  img.src=url;
+});
+
+/* ================================================================
+   DARK MODE & SIDEBAR TOGGLE
+================================================================ */
+function mmApplySidebar(){ root.classList.toggle("mm-sidebar-hidden",mmState.sidebarHidden); }
+function mmApplyDark(){ root.classList.toggle("mm-dark",mmState.dark); $("mmDarkToggle").textContent=mmState.dark?"☀️":"🌙"; }
+
+$("mmToggleSidebar").addEventListener("click",function(){ mmState.sidebarHidden=!mmState.sidebarHidden; mmApplySidebar(); mmSavePrefs(); });
+$("mmEdgeToggle").addEventListener("click",function(){ mmState.sidebarHidden=false; mmApplySidebar(); mmSavePrefs(); });
+$("mmDarkToggle").addEventListener("click",function(){ mmState.dark=!mmState.dark; mmApplyDark(); mmSavePrefs(); });
+
+/* ================================================================
+   INIT
+================================================================ */
+function mmInit(){
+  mmLoadIndex(); mmLoadPrefs();
+  mmApplySidebar(); mmApplyDark();
+  mmSetNewMode("indent");
+  mmRenderFileList(); mmResetView();
+  /* Open the most recently touched map */
+  if(mmState.maps.length){
+    var last=mmState.maps.slice().sort(function(a,b){return b.ts-a.ts;})[0];
+    mmOpenMap(last.id);
+  }
+  window.addEventListener("resize",function(){ if(!mmState.currentId) mmResetView(); });
+}
+
+mmInit();
+})();
+</script>
