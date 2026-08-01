@@ -75,6 +75,7 @@ input,textarea{ font-family:inherit; color:inherit; }
 
 .mm-body{ flex:1; min-height:0; display:flex; position:relative; overflow:hidden; }
 [data-mode="read"] .mm-plus-group{ display:none !important; }
+[data-mode="read"] .mm-threedot-group{ display:none !important; }
 .mm-scrim{ position:absolute; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(1px); opacity:0; pointer-events:none; transition:opacity var(--ease); z-index:45; }
 .mm-scrim.mm-show{ opacity:1; pointer-events:all; }
 
@@ -114,7 +115,7 @@ input,textarea{ font-family:inherit; color:inherit; }
 .mm-folder-icon{ color:var(--accent); font-size:13px; flex:0 0 auto; }
 .mm-tree-children{ display:grid; grid-template-rows:1fr; transition:grid-template-rows var(--ease); }
 .mm-tree-children.mm-collapsed{ grid-template-rows:0fr; }
-.mm-tree-children-inner{ overflow:hidden; min-height:0; display:flex; flex-direction:column; gap:2px; }
+.mm-tree-children-inner{ overflow:hidden; min-height:0; display:flex; flex-direction:column; gap:2px; border-left:1px dashed var(--border-soft); margin-left:19px; }
 
 .mm-inline-rename-input{
   width:100%; border:none; border-bottom:1.5px solid var(--accent); background:transparent; color:var(--text);
@@ -174,11 +175,17 @@ input,textarea{ font-family:inherit; color:inherit; }
 .mm-toggle-circle{ stroke:rgba(0,0,0,.18); stroke-width:1px; }
 .mm-toggle-glyph{ pointer-events:none; font-size:11px; fill:#fff; text-anchor:middle; dominant-baseline:middle; font-weight:700; }
 
+.mm-desc-dot{ pointer-events:none; }
 
 [data-mode="edit"] .mm-plus-group{ opacity:1; pointer-events:all; }
+[data-mode="edit"] .mm-threedot-group{ opacity:1; pointer-events:all; }
 
 .mm-plus-circle{ fill:var(--accent); stroke:rgba(0,0,0,.2); stroke-width:1px; }
 .mm-plus-glyph{ pointer-events:none; font-size:12px; fill:var(--accent-ink); text-anchor:middle; dominant-baseline:middle; font-weight:800; }
+
+.mm-threedot-group{ cursor:pointer; }
+.mm-threedot-circle{ fill:rgba(0,0,0,.32); stroke:rgba(255,255,255,.18); stroke-width:1px; }
+.mm-threedot-glyph{ pointer-events:none; font-size:11px; fill:#fff; text-anchor:middle; dominant-baseline:middle; font-weight:800; }
 
 .mm-edge-path{ fill:none; stroke-width:2.2px; stroke-linecap:round; transition:opacity .32s ease; }
 
@@ -239,13 +246,64 @@ input,textarea{ font-family:inherit; color:inherit; }
 .mm-preview-svg{ flex:1; min-height:280px; border-radius:12px; border:1px solid var(--border); background:var(--bg-canvas); background-image:radial-gradient(var(--border-soft) 1px, transparent 1px); background-size:16px 16px; }
 @media (max-width:820px){ .mm-edit-split{ flex-direction:column; } .mm-edit-right{ width:100%; } .mm-preview-svg{ min-height:200px; } }
 
-.mm-toast-stack{ position:fixed; top:calc(var(--topbar-h) + 10px); left:50%; transform:translateX(-50%); z-index:90; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; }
+.mm-toast-stack{ position:fixed; top:calc(var(--topbar-h) + 10px); left:50%; transform:translateX(-50%); z-index:95; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; }
 .mm-toast{ background:var(--panel); border:1px solid var(--border); color:var(--text); padding:10px 16px; border-radius:11px; font-size:13px; box-shadow:var(--shadow-md); display:flex; align-items:center; gap:9px; animation:mmToastIn .28s cubic-bezier(.22,.61,.36,1) both; }
 .mm-toast i{ color:var(--accent); }
 .mm-toast.mm-toast-danger i{ color:var(--danger); }
 @keyframes mmToastIn{ from{ opacity:0; transform:translateY(-10px) scale(.95);} to{ opacity:1; transform:translateY(0) scale(1);} }
 .mm-toast.mm-toast-out{ animation:mmToastOut .22s ease forwards; }
 @keyframes mmToastOut{ to{ opacity:0; transform:translateY(-8px) scale(.96);} }
+
+/* ============================================================ DESCRIPTION PANEL */
+.mm-desc-scrim{ position:fixed; inset:0; z-index:65; opacity:0; pointer-events:none; transition:opacity var(--ease); background:transparent; }
+.mm-desc-scrim.mm-open{ opacity:1; pointer-events:all; }
+@media (max-width:899px){ .mm-desc-scrim.mm-open{ background:rgba(0,0,0,.5); } }
+.mm-desc-panel{
+  position:fixed; z-index:66; background:var(--panel); border-left:1px solid var(--border);
+  box-shadow:var(--shadow-lg); display:flex; flex-direction:column;
+  top:var(--topbar-h); right:0; bottom:0; width:min(400px,92vw);
+  transform:translateX(100%); transition:transform var(--ease);
+}
+.mm-desc-panel.mm-open{ transform:translateX(0); }
+@media (max-width:899px){
+  .mm-desc-panel{
+    top:auto; left:0; right:0; bottom:0; width:100%; height:min(72vh,560px);
+    border-left:none; border-top:1px solid var(--border); border-radius:18px 18px 0 0;
+    transform:translateY(100%);
+  }
+  .mm-desc-panel.mm-open{ transform:translateY(0); }
+}
+.mm-desc-head{ display:flex; align-items:center; gap:10px; padding:16px 16px 10px; border-bottom:1px solid var(--border); flex:0 0 auto; }
+.mm-desc-head i.mm-desc-glyph{ color:var(--accent); }
+.mm-desc-title{ font-family:'Sora',sans-serif; font-weight:700; font-size:15px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-desc-body{ flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px; overflow-y:auto; }
+.mm-desc-textarea{ flex:1; width:100%; min-height:160px; resize:vertical; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg-canvas); font-size:13.5px; line-height:1.6; outline:none; transition:border-color var(--ease-fast); }
+.mm-desc-textarea:focus{ border-color:var(--accent); }
+.mm-desc-viewer{ flex:1; font-size:13.5px; line-height:1.75; color:var(--text); white-space:pre-wrap; }
+.mm-desc-viewer:empty::before{ content:"No description yet."; color:var(--text-faint); font-style:italic; }
+.mm-desc-foot{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--border); flex:0 0 auto; }
+
+/* ============================================================ DOCS MODAL */
+.mm-docs-overlay{ position:fixed; inset:0; background:rgba(6,7,10,.68); display:none; z-index:80; backdrop-filter:blur(3px); align-items:center; justify-content:center; padding:16px; }
+.mm-docs-overlay.mm-open{ display:flex; }
+.mm-docs-modal{ width:min(94vw,880px); max-height:90vh; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); display:flex; flex-direction:column; animation:mmModalIn .26s cubic-bezier(.22,.61,.36,1) both; }
+.mm-docs-head{ display:flex; align-items:center; gap:10px; padding:18px 20px 12px; border-bottom:1px solid var(--border); flex:0 0 auto; }
+.mm-docs-head h3{ margin:0; font-family:'Sora',sans-serif; font-size:16px; flex:1; display:flex; align-items:center; gap:9px; }
+.mm-docs-tabs{ display:flex; gap:6px; padding:12px 20px 0; flex-wrap:wrap; flex:0 0 auto; }
+.mm-docs-tab{ padding:8px 13px; border-radius:8px; font-size:12.5px; font-weight:600; color:var(--text-dim); border:1px solid var(--border); }
+.mm-docs-tab.mm-active{ background:var(--accent); color:var(--accent-ink); border-color:transparent; }
+.mm-docs-body{ padding:16px 20px 20px; overflow-y:auto; flex:1; min-height:0; }
+.mm-docs-panel{ display:none; }
+.mm-docs-panel.mm-active{ display:block; animation:mmFadeIn .2s ease both; }
+.mm-docs-panel h4{ font-family:'Sora',sans-serif; font-size:13.5px; margin:16px 0 8px; color:var(--accent); }
+.mm-docs-panel h4:first-child{ margin-top:0; }
+.mm-docs-panel p, .mm-docs-panel li{ font-size:13px; line-height:1.7; color:var(--text-dim); }
+.mm-docs-panel ul{ margin:6px 0; padding-left:20px; }
+.mm-docs-panel code{ background:var(--panel-2); border:1px solid var(--border); padding:1px 6px; border-radius:5px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text); }
+.mm-docs-pre{ background:var(--bg-canvas); border:1px solid var(--border); border-radius:10px; padding:14px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.65; white-space:pre-wrap; word-break:break-word; color:var(--text); margin:0; }
+.mm-docs-prompt-wrap{ position:relative; margin-top:8px; }
+.mm-docs-copy{ position:absolute; top:8px; right:8px; padding:6px 10px; font-size:11px; font-weight:700; border-radius:7px; background:var(--panel); border:1px solid var(--border); color:var(--text-dim); }
+.mm-docs-copy:hover{ background:var(--panel-2); color:var(--text); }
 
 @media (min-width:900px){
   .mm-brand-text{ display:inline; }
@@ -274,6 +332,7 @@ input,textarea{ font-family:inherit; color:inherit; }
       <button class="mm-mode-btn" data-mode="read"><i class="fa-solid fa-book-open"></i><span>Read</span></button>
     </div>
     <button class="mm-icon-btn js-theme-toggle" id="mmThemeToggleTop" title="Toggle light / dark theme"><i class="fa-solid fa-moon"></i></button>
+    <button class="mm-icon-btn" id="mmDocsBtn" title="Documentation &amp; help"><i class="fa-solid fa-circle-question"></i></button>
     <button class="mm-icon-btn" id="mmMoreBtn" title="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
   </header>
 
@@ -368,7 +427,7 @@ input,textarea{ font-family:inherit; color:inherit; }
     </div>
     <div class="mm-tab-panel" id="mmPanelPaste">
       <div class="mm-format-tabs" style="margin-bottom:6px">
-        <button class="mm-btn mm-btn-small" id="mmLoadExampleBtn" type="button" style="flex:0 0 auto; padding:6px 12px;"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Load example</button>
+        <button class="mm-btn" id="mmLoadExampleBtn" type="button" style="flex:0 0 auto; padding:6px 12px;"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; Load example</button>
       </div>
       <textarea id="mmTextInput" class="mm-textarea" spellcheck="false"
         placeholder="Root&#10;    Child A&#10;        Grandchild 1&#10;        Grandchild 2&#10;    Child B"></textarea>
@@ -419,6 +478,7 @@ input,textarea{ font-family:inherit; color:inherit; }
 <div class="mm-popover-menu" id="mmContextMenu">
   <div class="mm-menu-item" id="mmCtxRename"><i class="fa-solid fa-pencil"></i> Rename node</div>
   <div class="mm-menu-item" id="mmCtxAddChild"><i class="fa-solid fa-circle-plus"></i> Add child</div>
+  <div class="mm-menu-item" id="mmCtxEditDesc"><i class="fa-solid fa-align-left"></i> Edit description</div>
   <div class="mm-menu-divider"></div>
   <div class="mm-menu-item mm-menu-danger" id="mmCtxDelete"><i class="fa-solid fa-trash"></i> Delete node</div>
 </div>
@@ -434,10 +494,165 @@ input,textarea{ font-family:inherit; color:inherit; }
   <div class="mm-menu-item" data-act="editStructure"><i class="fa-solid fa-code"></i> Edit structure</div>
   <div class="mm-menu-item" data-act="exportMap"><i class="fa-solid fa-download"></i> Export map JSON</div>
   <div class="mm-menu-item" data-act="downloadPng"><i class="fa-solid fa-image"></i> Download PNG</div>
+  <div class="mm-menu-divider"></div>
+  <div class="mm-menu-item" data-act="openDocs"><i class="fa-solid fa-circle-question"></i> Documentation</div>
 </div>
 
 <!-- ================= ITEM MENU (sidebar maps / folders) ================= -->
 <div class="mm-popover-menu" id="mmItemMenu"></div>
+
+<!-- ================= DESCRIPTION PANEL ================= -->
+<div class="mm-desc-scrim" id="mmDescScrim"></div>
+<aside class="mm-desc-panel" id="mmDescPanel">
+  <div class="mm-desc-head">
+    <i class="fa-solid fa-align-left mm-desc-glyph"></i>
+    <div class="mm-desc-title" id="mmDescTitle">Node</div>
+    <button class="mm-icon-btn" id="mmDescCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="mm-desc-body">
+    <textarea class="mm-desc-textarea" id="mmDescTextarea" placeholder="Write a clear description or definition for this topic — this stays hidden until someone taps the node."></textarea>
+    <div class="mm-desc-viewer" id="mmDescViewer" style="display:none"></div>
+  </div>
+  <div class="mm-desc-foot">
+    <button class="mm-btn" id="mmDescCancelBtn">Close</button>
+    <button class="mm-btn mm-primary mm-full" id="mmDescSaveBtn"><i class="fa-solid fa-check"></i> Save description</button>
+  </div>
+</aside>
+
+<!-- ================= DOCUMENTATION MODAL ================= -->
+<div class="mm-docs-overlay" id="mmDocsOverlay">
+  <div class="mm-docs-modal">
+    <div class="mm-docs-head">
+      <h3><i class="fa-solid fa-book" style="color:var(--accent)"></i> Documentation</h3>
+      <button class="mm-icon-btn" id="mmDocsCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="mm-docs-tabs">
+      <button class="mm-docs-tab mm-active" data-tab="overview" type="button">Overview</button>
+      <button class="mm-docs-tab" data-tab="json" type="button">JSON format</button>
+      <button class="mm-docs-tab" data-tab="indent" type="button">Indent format</button>
+      <button class="mm-docs-tab" data-tab="prompts" type="button">AI prompts</button>
+    </div>
+    <div class="mm-docs-body">
+
+      <div class="mm-docs-panel mm-active" data-panel="overview">
+        <h4>What this is</h4>
+        <p>A local, offline mind-mapping tool. Every map is stored in your browser's storage — nothing leaves your device unless you export it.</p>
+        <h4>Edit vs Read mode</h4>
+        <p>Use the switch in the top bar. <b>Edit</b> mode shows the <code>+</code> add-child button and the <code>⋮</code> node menu, and lets you tap a node to write its description. <b>Read</b> mode hides those controls — tapping a node only opens its description if one exists, so a plain topic with nothing written stays untouched.</p>
+        <h4>Node basics</h4>
+        <ul>
+          <li><b>Tap the node body</b> — opens the description panel (editable in Edit mode, read-only in Read mode; only opens in Read mode if a description exists).</li>
+          <li><b>Checkbox</b> (left side, non-root nodes) — marks the topic done, with a strike-through.</li>
+          <li><b>Circle with ‹ ›</b> — expands or collapses that branch. Works in both modes.</li>
+          <li><b>⋮ three-dot button</b> (Edit mode) — opens a menu: rename, add child, edit description, delete.</li>
+          <li><b>+ button</b> (Edit mode) — quickly adds a child node.</li>
+          <li>A small dot near the bottom-left corner of a node means it has a saved description.</li>
+        </ul>
+        <h4>Folders</h4>
+        <p>Folders can be nested inside other folders freely — use a folder's ⋮ menu → "Add subfolder" to build any depth of tree. Folders can be renamed and deleted (deleting a folder only removes the folder itself; its contents move up one level).</p>
+        <h4>Editing structure in bulk</h4>
+        <p>The <code>&lt;/&gt;</code> toolbar button opens the Edit Structure modal, where you can rewrite the whole map as indented text or JSON, with a live preview. Switching between the two tabs automatically converts your current content, so you never lose work.</p>
+      </div>
+
+      <div class="mm-docs-panel" data-panel="json">
+        <h4>JSON structure</h4>
+        <p>Every node is an object with a <code>name</code>, and optionally <code>checked</code>, <code>collapsed</code>, <code>desc</code>, and a <code>children</code> array. Only <code>name</code> is required — everything else defaults to off/empty.</p>
+        <pre class="mm-docs-pre">{
+  "name": "Root Topic",
+  "children": [
+    {
+      "name": "Child Topic A",
+      "checked": false,
+      "collapsed": false,
+      "desc": "A clear, plain-language explanation of this topic.",
+      "children": [
+        { "name": "Grandchild 1", "desc": "Short definition here." },
+        { "name": "Grandchild 2" }
+      ]
+    },
+    {
+      "name": "Child Topic B",
+      "collapsed": true,
+      "children": [
+        { "name": "Hidden until expanded" }
+      ]
+    }
+  ]
+}</pre>
+        <p style="margin-top:10px"><code>desc</code> is optional — omit it (or leave it empty) for nodes that don't need a description; they simply won't be clickable for extra info in Read mode.</p>
+      </div>
+
+      <div class="mm-docs-panel" data-panel="indent">
+        <h4>Indent structure</h4>
+        <p>One node per line. Indent with spaces or tabs to nest a line under the line directly above it. The first line is always the root.</p>
+        <h4>Optional flags &amp; description</h4>
+        <ul>
+          <li><code>[x]</code> right after the name — marks the node <b>checked</b>.</li>
+          <li><code>[c]</code> right after the name — marks the branch <b>collapsed</b> by default.</li>
+          <li><code> :: </code> (space, two colons, space) followed by text — everything after it is the node's <b>description</b>. Use <code>\n</code> for a line break inside a description.</li>
+        </ul>
+        <pre class="mm-docs-pre">Root Topic
+    Child Topic A [x] :: A clear, plain-language explanation of this topic.
+    Child Topic B [c]
+        Hidden until expanded :: Short definition here.
+    Child Topic C :: Simple description without any flags.</pre>
+        <p style="margin-top:10px">Flags and the description are all optional and can be combined in any order of presence — a line can be just a name, a name with flags, or a name with flags and a description.</p>
+      </div>
+
+      <div class="mm-docs-panel" data-panel="prompts">
+        <h4>Ask an AI to build the map for you</h4>
+        <p>Upload your document (text or PDF) to an AI assistant along with one of the prompts below. The AI should pick out only the genuinely important topics — proportional to how much material you gave it — and write a simple, clear description for each one, so the resulting map stays clean and easy to read instead of an overwhelming wall of nodes.</p>
+
+        <h4>Prompt for JSON output</h4>
+        <div class="mm-docs-prompt-wrap">
+          <button class="mm-docs-copy" data-copy-target="mmPromptJson" type="button"><i class="fa-solid fa-copy"></i> Copy</button>
+          <pre class="mm-docs-pre" id="mmPromptJson">You are helping me build a mind map from the attached document. Read it carefully and identify the most important topics and subtopics, organized hierarchically (main themes at the top, supporting details nested underneath).
+
+Rules:
+- Keep the map reasonably sized for the length and depth of the source document — do not force in hundreds of nodes; pick only what is genuinely important, so the map stays clean and easy to scan. A short document might need only 10-20 nodes; a long, dense one might need more, but always prioritize the most essential ideas over completeness.
+- Use 2-4 levels of hierarchy at most, unless the material clearly demands more.
+- For every single node, write a "desc" field: a clear, detailed, easy-to-understand explanation of that topic in simple, plain language (a few sentences), as if explaining it to someone new to the subject.
+- Node names should be short topic labels, not full sentences.
+- Output ONLY valid JSON, with no extra commentary, no markdown code fences, and no text before or after it. Follow this exact structure:
+
+{
+  "name": "Root Topic",
+  "children": [
+    {
+      "name": "Subtopic",
+      "desc": "Simple, clear explanation of this subtopic.",
+      "children": [
+        { "name": "Detail", "desc": "Simple explanation of this detail." }
+      ]
+    }
+  ]
+}</pre>
+        </div>
+
+        <h4>Prompt for Indent-text output</h4>
+        <div class="mm-docs-prompt-wrap">
+          <button class="mm-docs-copy" data-copy-target="mmPromptIndent" type="button"><i class="fa-solid fa-copy"></i> Copy</button>
+          <pre class="mm-docs-pre" id="mmPromptIndent">You are helping me build a mind map from the attached document. Read it carefully and identify the most important topics and subtopics, organized hierarchically (main themes at the top, supporting details nested underneath).
+
+Rules:
+- Keep the map reasonably sized for the length and depth of the source document — do not force in hundreds of nodes; pick only what is genuinely important, so the map stays clean and easy to scan. A short document might need only 10-20 nodes; a long, dense one might need more, but always prioritize the most essential ideas over completeness.
+- Use 2-4 levels of hierarchy at most, unless the material clearly demands more.
+- Output plain indented text: one node per line, and indent child lines with exactly 4 spaces per level under their parent. The first line is the root and has no indent.
+- For every single node, append " :: " followed by a clear, detailed, easy-to-understand explanation of that topic in simple, plain language (a few sentences), as if explaining it to someone new to the subject. Use "\n" (backslash n) instead of a real line break if the description needs one.
+- Do not use the [x] or [c] flags unless I specifically ask for pre-checked or pre-collapsed nodes.
+- Output ONLY the indented text, with no extra commentary, no markdown code fences, and no text before or after it. Follow this exact style:
+
+Root Topic
+    Subtopic One :: Simple, clear explanation of this subtopic.
+        Detail A :: Simple explanation of this detail.
+        Detail B :: Simple explanation of this detail.
+    Subtopic Two :: Simple, clear explanation of this subtopic.</pre>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <div class="mm-toast-stack" id="mmToastStack"></div>
 <input type="file" id="mmSysImportInput" accept="application/json,.json" style="display:none" />
@@ -458,27 +673,27 @@ var NODE_FONT="600 13.5px 'Inter', ui-sans-serif, system-ui, sans-serif";
 var EDGE_VARS=["var(--e0)","var(--e1)","var(--e2)","var(--e3)"];
 
 var EXAMPLE_INDENT =
-"Adversarial Machine Learning\n"+
-"    Taxonomy of Attacks\n"+
-"        Influence\n"+
-"            Causative\n"+
-"            Exploratory\n"+
-"        Security Violation\n"+
-"            Integrity\n"+
-"            Availability\n"+
-"            Privacy\n"+
-"    Adversary Modeling\n"+
-"        Capabilities\n"+
-"            Insertion Model\n"+
-"            Alteration Model\n"+
-"        Attacker Knowledge\n"+
-"            Algorithm\n"+
-"            Feature Space\n"+
-"    Defensive Countermeasures\n"+
-"        Data Sanitization\n"+
-"            RONI Filter\n"+
-"        Robust Learning\n"+
-"            Antidote Algorithm\n";
+"Adversarial Machine Learning :: The study of how machine learning systems can be attacked, and how to defend them.\n"+
+"    Taxonomy of Attacks :: A way of classifying attacks against ML systems by their goal and method.\n"+
+"        Influence :: Whether the attack tries to change the model during training or just probe it afterward.\n"+
+"            Causative :: The attacker injects bad data during training to corrupt the model itself.\n"+
+"            Exploratory :: The attacker only probes a finished model to learn its weaknesses, without changing it.\n"+
+"        Security Violation :: What kind of harm the attack aims to cause.\n"+
+"            Integrity :: The attacker tries to make the model give wrong answers without being noticed.\n"+
+"            Availability :: The attacker tries to make the model unusable or unreliable for everyone.\n"+
+"            Privacy :: The attacker tries to extract private information the model learned from its training data.\n"+
+"    Adversary Modeling :: How defenders reason about what an attacker can and knows.\n"+
+"        Capabilities :: What the attacker is actually able to do to the system.\n"+
+"            Insertion Model :: The attacker can add new poisoned data points into training.\n"+
+"            Alteration Model :: The attacker can modify existing training data.\n"+
+"        Attacker Knowledge :: How much the attacker knows about the model internals.\n"+
+"            Algorithm :: The attacker knows which learning algorithm is used.\n"+
+"            Feature Space :: The attacker knows which features the model relies on.\n"+
+"    Defensive Countermeasures :: Techniques used to make ML systems more robust against attacks.\n"+
+"        Data Sanitization :: Cleaning training data to remove poisoned or malicious samples.\n"+
+"            RONI Filter :: Removes training points that hurt accuracy when included (Reject On Negative Impact).\n"+
+"        Robust Learning :: Training methods designed to tolerate some amount of bad data.\n"+
+"            Antidote Algorithm :: A specific robust-regression technique resistant to poisoning.\n";
 
 /* ============================================================ STATE */
 var mmState = {
@@ -496,6 +711,8 @@ var mmNewMode    = "blank";
 var mmEditMode   = "indent";
 var mmEditDebounceTimer = null;
 var mmIsDesktop = window.matchMedia("(min-width:900px)").matches;
+var mmDescPanelNodeId = null;
+var mmDescPanelEditable = false;
 
 function $(id){ return document.getElementById(id); }
 var appRoot=$("app"), mmBody=$("mmBody");
@@ -513,6 +730,9 @@ var elPreviewSvg=$("mmPreviewSvg"), elPreviewEdges=$("mmPreviewEdges"), elPrevie
 var elContextMenu=$("mmContextMenu"), elMoreMenu=$("mmMoreMenu"), elItemMenu=$("mmItemMenu");
 var elSidebar=$("mmSidebar"), elScrim=$("mmScrim");
 var elToastStack=$("mmToastStack"), elSysImportInput=$("mmSysImportInput");
+var elDescScrim=$("mmDescScrim"), elDescPanel=$("mmDescPanel"), elDescTitle=$("mmDescTitle");
+var elDescTextarea=$("mmDescTextarea"), elDescViewer=$("mmDescViewer"), elDescSaveBtn=$("mmDescSaveBtn");
+var elDocsOverlay=$("mmDocsOverlay");
 
 /* ============================================================ TOAST */
 function mmToast(msg,type,icon){
@@ -561,6 +781,7 @@ function mmAssignIds(node){
   node.id="n"+(mmState.idCounter++);
   node.collapsed = node.collapsed===undefined ? false : !!node.collapsed;
   node.checked   = node.checked===undefined   ? false : !!node.checked;
+  node.desc      = node.desc===undefined || node.desc===null ? "" : String(node.desc);
   if(!node.children) node.children=[];
   node.children.forEach(mmAssignIds);
   return node;
@@ -568,6 +789,7 @@ function mmAssignIds(node){
 function mmAssignIdsFresh(node, counter, prefix){
   node.id=prefix+(counter.v++);
   node.collapsed=!!node.collapsed; node.checked=!!node.checked;
+  node.desc = node.desc===undefined || node.desc===null ? "" : String(node.desc);
   if(!node.children) node.children=[];
   node.children.forEach(function(c){ mmAssignIdsFresh(c,counter,prefix); });
   return node;
@@ -585,7 +807,12 @@ function mmFindParent(root,id){
   }
   return null;
 }
-function mmStripTree(n){ var o={name:n.name, checked:!!n.checked, collapsed:!!n.collapsed}; if(n.children&&n.children.length) o.children=n.children.map(mmStripTree); return o; }
+function mmStripTree(n){
+  var o={name:n.name, checked:!!n.checked, collapsed:!!n.collapsed};
+  if(n.desc && String(n.desc).trim()) o.desc=n.desc;
+  if(n.children&&n.children.length) o.children=n.children.map(mmStripTree);
+  return o;
+}
 function mmToggleCheck(id){
   var node=mmFindNode(mmState.tree,id); if(!node) return;
   var nv=!node.checked;
@@ -598,17 +825,33 @@ function mmToggleCheck(id){
 
 /* ============================================================ PARSING */
 function mmParseJson(text){ var d=JSON.parse(text); if(Array.isArray(d)) d={name:"Root",children:d}; if(!d.name) throw new Error('JSON needs a top-level "name" field.'); return d; }
+
+function mmParseLineMeta(raw){
+  var desc="", namePart=raw;
+  var idx=raw.indexOf(" :: ");
+  if(idx!==-1){ namePart=raw.slice(0,idx); desc=raw.slice(idx+4); }
+  var checked=false, collapsed=false;
+  namePart = namePart.replace(/\[(x|X)\]/g,function(){ checked=true; return ""; });
+  namePart = namePart.replace(/\[(c|C)\]/g,function(){ collapsed=true; return ""; });
+  namePart = namePart.replace(/\s+/g," ").trim();
+  desc = desc.trim().replace(/\\n/g,"\n");
+  return {name:namePart, checked:checked, collapsed:collapsed, desc:desc};
+}
 function mmParseIndent(text){
   var lines=text.replace(/\r\n/g,"\n").split("\n").filter(function(l){return l.trim();}).map(function(l){
-    var exp=l.replace(/\t/g,"    "); return {indent:exp.length-exp.trimStart().length, name:exp.trim()};
+    var exp=l.replace(/\t/g,"    ");
+    var indent=exp.length-exp.trimStart().length;
+    var meta=mmParseLineMeta(exp.trim());
+    return {indent:indent, meta:meta};
   });
   if(!lines.length) throw new Error("No content to parse.");
-  var rootNode={name:lines[0].name,children:[]};
+  var rm=lines[0].meta;
+  var rootNode={name:rm.name, checked:rm.checked, collapsed:rm.collapsed, desc:rm.desc, children:[]};
   var stack=[{indent:lines[0].indent,node:rootNode}];
   for(var i=1;i<lines.length;i++){
     var ln=lines[i];
     while(stack.length>1 && ln.indent<=stack[stack.length-1].indent) stack.pop();
-    var child={name:ln.name,children:[]};
+    var child={name:ln.meta.name, checked:ln.meta.checked, collapsed:ln.meta.collapsed, desc:ln.meta.desc, children:[]};
     stack[stack.length-1].node.children.push(child);
     stack.push({indent:ln.indent,node:child});
   }
@@ -622,18 +865,26 @@ function mmParseInput(text,mode){
   mmState.idCounter=0;
   return mmAssignIds(tree);
 }
+function mmNodeLineText(node){
+  var flags="";
+  if(node.checked) flags+="[x]";
+  if(node.collapsed) flags+="[c]";
+  var line=node.name+(flags?" "+flags:"");
+  if(node.desc && String(node.desc).trim()) line += " :: "+String(node.desc).trim().replace(/\n/g,"\\n");
+  return line;
+}
 function mmTreeToIndent(node,depth){
   var indent=""; for(var i=0;i<depth;i++) indent+="    ";
-  var lines=[indent+node.name];
+  var lines=[indent+mmNodeLineText(node)];
   (node.children||[]).forEach(function(c){ lines=lines.concat(mmTreeToIndent(c,depth+1)); });
   return lines;
 }
 function mmTreeToStr(tree){ return mmTreeToIndent(tree,0).join("\n"); }
 function mmPreserveStates(oldTree,newTree){
   var map={};
-  function collect(n,path){ map[path]={checked:!!n.checked,collapsed:!!n.collapsed}; (n.children||[]).forEach(function(c,i){ collect(c,path+"/"+i+":"+c.name); }); }
+  function collect(n,path){ map[path]={checked:!!n.checked,collapsed:!!n.collapsed,desc:n.desc||""}; (n.children||[]).forEach(function(c,i){ collect(c,path+"/"+i+":"+c.name); }); }
   collect(oldTree,"0:"+oldTree.name);
-  function apply(n,path){ var s=map[path]; if(s){ n.checked=s.checked; n.collapsed=s.collapsed; } (n.children||[]).forEach(function(c,i){ apply(c,path+"/"+i+":"+c.name); }); }
+  function apply(n,path){ var s=map[path]; if(s){ if(n.checked===undefined) n.checked=s.checked; if(n.collapsed===undefined) n.collapsed=s.collapsed; if(!n.desc) n.desc=s.desc; } (n.children||[]).forEach(function(c,i){ apply(c,path+"/"+i+":"+c.name); }); }
   apply(newTree,"0:"+newTree.name);
 }
 
@@ -682,9 +933,7 @@ function mmSetTf(el,x,y,op){ el.style.transform="translate("+x+"px,"+y+"px)"; if
 function mmAnchor(item){ return {x:item.x+item.w+HUB_GAP, y:item.y}; }
 function mmInAnchor(item){ return {x:item.x, y:item.y}; }
 
-/* ============================================================ CREATE NODE GROUP
-   NOTE: toggle-group is ALWAYS created (visibility synced every render) so it
-   never "disappears until refresh" when a childless node gains its first child. */
+/* ============================================================ CREATE NODE GROUP */
 function mmCreateNodeGroup(item){
   var node=item.node;
   var colors=mmNodeColors(item.depth);
@@ -761,11 +1010,32 @@ function mmCreateNodeGroup(item){
   pg.addEventListener("click",function(ev){ ev.stopPropagation(); if(mmState.mode!=="edit") return; mmStartAddChild(node.id); });
   g.appendChild(pg);
 
+  /* ⋮ three-dot node menu (edit mode only, via CSS) */
+  var tdg=mmSvgEl("g"); tdg.setAttribute("class","mm-threedot-group");
+  var tdCircle=mmSvgEl("circle"); tdCircle.setAttribute("class","mm-threedot-circle");
+  tdCircle.setAttribute("cx",item.w-12); tdCircle.setAttribute("cy",-item.h/2+12); tdCircle.setAttribute("r",9);
+  tdg.appendChild(tdCircle);
+  var tdGlyph=mmSvgEl("text"); tdGlyph.setAttribute("class","mm-threedot-glyph");
+  tdGlyph.setAttribute("x",item.w-12); tdGlyph.setAttribute("y",-item.h/2+13); tdGlyph.textContent="⋮";
+  tdg.appendChild(tdGlyph);
+  tdg.addEventListener("click",function(ev){ ev.stopPropagation(); mmShowContextMenu(ev.clientX,ev.clientY,node.id); });
+  g.appendChild(tdg);
+
+  /* Description indicator dot */
+  var descDot=mmSvgEl("circle"); descDot.setAttribute("class","mm-desc-dot");
+  descDot.setAttribute("cx",10); descDot.setAttribute("cy",item.h/2-9); descDot.setAttribute("r",3.4);
+  descDot.setAttribute("fill","var(--accent)");
+  descDot.style.display=(node.desc && String(node.desc).trim()) ? "" : "none";
+  g.appendChild(descDot);
+
   g.addEventListener("click",function(ev){
-    if(mmState.mode!=="edit") return;
-    if(ev.target.closest(".mm-checkbox-group")||ev.target.closest(".mm-toggle-group")||ev.target.closest(".mm-plus-group")) return;
+    if(ev.target.closest(".mm-checkbox-group")||ev.target.closest(".mm-toggle-group")||ev.target.closest(".mm-plus-group")||ev.target.closest(".mm-threedot-group")) return;
     ev.stopPropagation();
-    mmShowContextMenu(ev.clientX,ev.clientY,node.id);
+    if(mmState.mode==="edit"){
+      mmOpenDescPanel(node.id,true);
+    } else if(node.desc && String(node.desc).trim()){
+      mmOpenDescPanel(node.id,false);
+    }
   });
   g.addEventListener("contextmenu",function(ev){
     ev.preventDefault(); ev.stopPropagation();
@@ -774,7 +1044,37 @@ function mmCreateNodeGroup(item){
   });
 
   elNodesLayer.appendChild(g);
-  return {g:g,rect:rect,text:text,cbRect:cbRect,cbCheck:cbCheck,strikeEl:strikeEl,toggleGroup:tg,toggleGlyph:toggleGlyph,toggleCircle:circle};
+  return {g:g,rect:rect,text:text,cbRect:cbRect,cbCheck:cbCheck,strikeEl:strikeEl,
+    toggleGroup:tg,toggleGlyph:toggleGlyph,toggleCircle:circle,
+    plusCircle:pCircle,plusGlyph:pGlyph,threedotCircle:tdCircle,threedotGlyph:tdGlyph,descDot:descDot};
+}
+
+/* ============================================================ SYNC EXISTING NODE GROUP (fixes rename/width/state drift) */
+function mmSyncNodeGroup(rec,item){
+  var node=item.node;
+  if(rec.text.textContent!==node.name) rec.text.textContent=node.name;
+  rec.rect.setAttribute("width",item.w);
+  if(rec.strikeEl){
+    MEASURE_CTX.font=NODE_FONT;
+    var textX=parseFloat(rec.text.getAttribute("x"));
+    var tW=Math.ceil(MEASURE_CTX.measureText(node.name).width);
+    rec.strikeEl.setAttribute("x1",textX); rec.strikeEl.setAttribute("x2",textX+tW);
+  }
+  rec.toggleGlyph.textContent=node.collapsed?"›":"‹";
+  rec.toggleGroup.style.display = item.hasChildren ? "" : "none";
+  if(rec.toggleCircle) rec.toggleCircle.setAttribute("cx", item.w+HUB_GAP/2);
+  if(rec.toggleGlyph) rec.toggleGlyph.setAttribute("x", item.w+HUB_GAP/2);
+  if(rec.plusCircle) rec.plusCircle.setAttribute("cx", item.w-2);
+  if(rec.plusGlyph) rec.plusGlyph.setAttribute("x", item.w-2);
+  if(rec.threedotCircle) rec.threedotCircle.setAttribute("cx", item.w-12);
+  if(rec.threedotGlyph) rec.threedotGlyph.setAttribute("x", item.w-12);
+  if(item.depth>0 && rec.cbRect){
+    var ck=!!node.checked;
+    rec.cbRect.setAttribute("fill", ck?"var(--ok)":"rgba(255,255,255,0.16)");
+    if(rec.cbCheck) rec.cbCheck.style.display=ck?"":"none";
+    rec.g.classList.toggle("mm-checked", ck);
+  }
+  if(rec.descDot) rec.descDot.style.display=(node.desc && String(node.desc).trim())?"":"none";
 }
 
 /* ============================================================ INLINE RENAME (canvas node) */
@@ -831,7 +1131,7 @@ function mmStartAddChild(parentId){
     done=true;
     if(fo.parentNode) fo.parentNode.removeChild(fo);
     if(!parent.children) parent.children=[];
-    parent.children.push({id:"n"+(mmState.idCounter++), name:val, children:[], checked:false, collapsed:false});
+    parent.children.push({id:"n"+(mmState.idCounter++), name:val, children:[], checked:false, collapsed:false, desc:""});
     parent.collapsed=false;
     mmRender(); mmPersistCurrent();
     mmToast("Added \u201c"+val+"\u201d","ok","fa-circle-plus");
@@ -853,7 +1153,7 @@ function mmShowContextMenu(cx,cy,nodeId){
   elContextMenu.classList.toggle("mm-sheet", isMobile);
   elContextMenu.style.display="block";
   if(!isMobile){
-    var mw=210, mh=150, vw=window.innerWidth, vh=window.innerHeight;
+    var mw=210, mh=195, vw=window.innerWidth, vh=window.innerHeight;
     var lx=cx, ly=cy;
     if(lx+mw>vw) lx=vw-mw-8;
     if(ly+mh>vh) ly=vh-mh-8;
@@ -869,12 +1169,17 @@ $("mmCtxRename").addEventListener("click",function(){
   if(node&&li&&rec) mmStartInlineEdit(node,li,rec.g);
 });
 $("mmCtxAddChild").addEventListener("click",function(){ var id=mmCtxNodeId; mmHideContextMenu(); if(id) mmStartAddChild(id); });
+$("mmCtxEditDesc").addEventListener("click",function(){
+  var id=mmCtxNodeId; mmHideContextMenu(); if(!id) return;
+  mmOpenDescPanel(id,true);
+});
 $("mmCtxDelete").addEventListener("click",function(){
   var id=mmCtxNodeId; mmHideContextMenu(); if(!id) return;
   if(mmState.tree && mmState.tree.id===id){ mmToast("Cannot delete the root node.","danger"); return; }
   var parent=mmFindParent(mmState.tree,id); if(!parent) return;
   if(!confirm("Delete this node and all its children?")) return;
   parent.children=parent.children.filter(function(c){return c.id!==id;});
+  if(mmDescPanelNodeId===id) mmCloseDescPanel();
   mmRender(); mmPersistCurrent();
   mmToast("Node deleted","danger","fa-trash");
 });
@@ -899,15 +1204,7 @@ function mmRender(){
       rec.g.style.transition="none"; void rec.g.getBoundingClientRect(); rec.g.style.transition="";
       requestAnimationFrame(function(){ mmSetTf(rec.g,item.x,item.y,1); });
     } else {
-      /* keep toggle glyph + visibility in sync every render (fixes it "disappearing until refresh") */
-      rec.toggleGlyph.textContent=item.node.collapsed?"›":"‹";
-      rec.toggleGroup.style.display = item.hasChildren ? "" : "none";
-      if(item.depth>0 && rec.cbRect){
-        var ck=!!item.node.checked;
-        rec.cbRect.setAttribute("fill", ck?"var(--ok)":"rgba(255,255,255,0.16)");
-        if(rec.cbCheck) rec.cbCheck.style.display=ck?"":"none";
-        rec.g.classList.toggle("mm-checked", ck);
-      }
+      mmSyncNodeGroup(rec,item);
       mmSetTf(rec.g,item.x,item.y,1);
     }
   });
@@ -963,7 +1260,7 @@ function mmSetAllCollapsed(v){
   mmRender(); mmPersistCurrent();
 }
 
-/* ============================================================ STATIC RENDER (edit preview) */
+/* ============================================================ STATIC RENDER (edit preview + PNG export) */
 function mmStaticRender(tree,nodesLayer,edgesLayer,svgEl){
   nodesLayer.innerHTML=""; edgesLayer.innerHTML="";
   if(!tree) return;
@@ -972,7 +1269,7 @@ function mmStaticRender(tree,nodesLayer,edgesLayer,svgEl){
   if(!items.length) return;
   var mn={x:Infinity,y:Infinity}, mx={x:-Infinity,y:-Infinity};
   items.forEach(function(it){ mn.x=Math.min(mn.x,it.x); mn.y=Math.min(mn.y,it.y-it.h/2); mx.x=Math.max(mx.x,it.x+it.w+HUB_GAP+10); mx.y=Math.max(mx.y,it.y+it.h/2); });
-  var pad=24;
+  var pad=28;
   svgEl.setAttribute("viewBox",(mn.x-pad)+" "+(mn.y-pad)+" "+(mx.x-mn.x+pad*2)+" "+(mx.y-mn.y+pad*2));
   items.forEach(function(item){
     var node=item.node, colors=mmNodeColors(item.depth), isRoot=(item.depth===0);
@@ -996,11 +1293,17 @@ function mmStaticRender(tree,nodesLayer,edgesLayer,svgEl){
     var txt=mmSvgEl("text"); txt.setAttribute("class","mm-node-text");
     txt.setAttribute("x",textX); txt.setAttribute("y",1); txt.setAttribute("fill",colors.text); txt.textContent=node.name;
     g.appendChild(txt);
+    /* Strike-through is only ever created when the node is actually checked — this is what
+       guarantees the exported PNG never shows a strike-through on an unchecked node. */
     if(!isRoot && node.checked){
       var tw=Math.ceil(MEASURE_CTX.measureText(node.name).width);
       var sl=mmSvgEl("line"); sl.setAttribute("class","mm-node-strike");
       sl.setAttribute("x1",textX); sl.setAttribute("y1","1"); sl.setAttribute("x2",textX+tw); sl.setAttribute("y2","1");
-      sl.setAttribute("stroke",colors.text); sl.setAttribute("stroke-width","1.8"); g.appendChild(sl);
+      sl.setAttribute("stroke",colors.text); sl.setAttribute("stroke-width","1.8"); sl.style.opacity="0.7"; g.appendChild(sl);
+    }
+    if(!isRoot && node.desc && String(node.desc).trim()){
+      var dd=mmSvgEl("circle"); dd.setAttribute("cx",10); dd.setAttribute("cy",item.h/2-9); dd.setAttribute("r",3.4); dd.setAttribute("fill",colors.text); dd.style.opacity="0.55";
+      g.appendChild(dd);
     }
     if(item.hasChildren){
       var circle=mmSvgEl("circle"); circle.setAttribute("class","mm-toggle-circle");
@@ -1151,6 +1454,7 @@ function mmDeleteMap(mapId){
   if(mmState.currentId===mapId){
     mmState.currentId=null; mmState.tree=null; mmClearCanvas();
     elCurrentTitle.textContent="No map open"; elEmptyState.style.display="flex";
+    mmCloseDescPanel();
   }
   mmRenderFileList();
   mmToast("Map deleted","danger","fa-trash");
@@ -1250,6 +1554,7 @@ function mmBuildLevel(parentId,depth){
 function mmClearCanvas(){ elNodesLayer.innerHTML=""; elEdgesLayer.innerHTML=""; mmState.dom={nodes:{},edges:{}}; mmPrevLayout=null; }
 function mmOpenMap(id){
   var data=mmLoadMapData(id); if(!data) return;
+  mmCloseDescPanel();
   mmState.currentId=id; mmState.tree=data; mmState.idCounter=0;
   (function ensure(n){
     if(!n.id) n.id="n"+(mmState.idCounter++);
@@ -1257,6 +1562,7 @@ function mmOpenMap(id){
     if(!n.children) n.children=[];
     if(n.collapsed===undefined) n.collapsed=false;
     if(n.checked===undefined) n.checked=false;
+    if(n.desc===undefined || n.desc===null) n.desc="";
     n.children.forEach(ensure);
   })(data);
   mmClearCanvas(); elEmptyState.style.display="none";
@@ -1299,17 +1605,6 @@ function mmOpenItemMenu(cx,cy,type,id){
 function mmShowFolderPicker(mapId){
   elItemMenu.innerHTML="";
   var back=mmMenuRow("fa-arrow-left","Back","back"); elItemMenu.appendChild(back);
-  var div=document.createElement("div"); div.className="mm-menu-divider"; elItemMenu.appendChild(div);
-  var rootRow=mmMenuRow("fa-inbox","Root (no folder)","moveTo:"); elItemMenu.appendChild(rootRow);
-  mmState.folders.slice().sort(function(a,b){return mmFolderPath(a.id).localeCompare(mmFolderPath(b.id));}).forEach(function(f){
-    elItemMenu.appendChild(mmMenuRow("fa-folder","moveTo:"+f.id));
-  });
-  // rebuild with proper labels (fa-folder rows need real label text, fix below)
-  elItemMenu.querySelectorAll('.mm-menu-item[data-act^="moveTo:"]').forEach(function(row,i){
-    if(i===0) return; // root row already labeled
-  });
-  elItemMenu.innerHTML="";
-  elItemMenu.appendChild(back);
   var div3=document.createElement("div"); div3.className="mm-menu-divider"; elItemMenu.appendChild(div3);
   var rootRow2=mmMenuRow("fa-inbox","Root (no folder)","moveTo:"); elItemMenu.appendChild(rootRow2);
   mmState.folders.slice().sort(function(a,b){return mmFolderPath(a.id).localeCompare(mmFolderPath(b.id));}).forEach(function(f){
@@ -1391,19 +1686,30 @@ function mmSetNewMode(m){
   elPanelPaste.classList.toggle("mm-active",m!=="blank");
   $("mmSaveBtn").innerHTML = m==="blank" ? '<i class="fa-solid fa-check"></i> Create map' : '<i class="fa-solid fa-check"></i> Parse &amp; create';
   if(m==="json"){
-    elTextInput.placeholder='{\n  "name": "Root Node",\n  "children": [\n    { "name": "Branch", "children": [ { "name": "Leaf A" } ] }\n  ]\n}';
-    elFormatHint.textContent='JSON: { "name": "Root", "children": [ { "name": "Child", "children": [...] } ] } — every node needs "name".';
+    elTextInput.placeholder='{\n  "name": "Root Node",\n  "children": [\n    { "name": "Branch", "desc": "Optional description.", "children": [ { "name": "Leaf A" } ] }\n  ]\n}';
+    elFormatHint.textContent='JSON: { "name": "Root", "desc": "optional", "children": [ { "name": "Child", ... } ] } — every node needs "name".';
   } else if(m==="indent"){
-    elTextInput.placeholder="Root\n    Branch 1\n        Leaf A\n        Leaf B\n    Branch 2\n        Leaf C";
-    elFormatHint.textContent="Each line = a node. Indent with spaces/tabs to nest. First line becomes the root.";
+    elTextInput.placeholder="Root\n    Child A [x] :: optional description\n        Leaf A\n    Child B [c]";
+    elFormatHint.textContent="Each line = a node. Indent with spaces/tabs to nest. Optional [x] checked, [c] collapsed, and \" :: description\" after the name.";
   }
 }
+function mmConvertNewContent(fromMode,toMode){
+  var text=elTextInput.value;
+  if(!text.trim()) return;
+  try{
+    var saved=mmState.idCounter;
+    var tree=mmParseInput(text,fromMode);
+    mmState.idCounter=saved;
+    elTextInput.value = toMode==="json" ? JSON.stringify(mmStripTree(tree),null,2) : mmTreeToStr(tree);
+  }catch(e){ /* leave content as-is; user can fix it in the new tab */ }
+}
 elTabBlank.addEventListener("click",function(){ mmSetNewMode("blank"); });
-elTabIndent.addEventListener("click",function(){ mmSetNewMode("indent"); });
-elTabJson.addEventListener("click",function(){ mmSetNewMode("json"); });
-function mmPlainFromParsed(n){ var o={name:n.name}; if(n.children&&n.children.length) o.children=n.children.map(mmPlainFromParsed); return o; }
+elTabIndent.addEventListener("click",function(){ if(mmNewMode==="json") mmConvertNewContent("json","indent"); mmSetNewMode("indent"); });
+elTabJson.addEventListener("click",function(){ if(mmNewMode==="indent") mmConvertNewContent("indent","json"); mmSetNewMode("json"); });
+function mmPlainFromParsed(n){ var o={name:n.name}; if(n.desc) o.desc=n.desc; if(n.children&&n.children.length) o.children=n.children.map(mmPlainFromParsed); return o; }
 $("mmLoadExampleBtn").addEventListener("click",function(){
   elTextInput.value = mmNewMode==="json" ? JSON.stringify(mmPlainFromParsed(mmParseIndent(EXAMPLE_INDENT)),null,2) : EXAMPLE_INDENT;
+  if(mmNewMode==="blank") mmSetNewMode("indent");
   if(!elNameInput.value) elNameInput.value="Adversarial Machine Learning";
 });
 $("mmNewBtn").addEventListener("click",function(){ mmState.pendingFolderId=null; mmOpenModal(); });
@@ -1445,8 +1751,18 @@ function mmSetEditMode(m){
   elEditTabIndent.classList.toggle("mm-active",m==="indent");
   elEditTabJson.classList.toggle("mm-active",m==="json");
   elEditFormatHint.textContent = m==="json"
-    ? 'JSON: { "name": "Root", "children": [ { "name": "Child", "children": [...] } ] }'
-    : "Indent format: one node per line, indent with spaces/tabs to nest.";
+    ? 'JSON: { "name": "Root", "desc": "optional", "children": [ { "name": "Child", ... } ] }'
+    : 'Indent format: one node per line, 4-space/tab indent to nest. Optional [x] checked, [c] collapsed, " :: description" after the name.';
+}
+function mmConvertEditContent(fromMode,toMode){
+  var text=elEditTextarea.value;
+  if(!text.trim()) return;
+  try{
+    var saved=mmState.idCounter;
+    var tree=mmParseInput(text,fromMode);
+    mmState.idCounter=saved;
+    elEditTextarea.value = toMode==="json" ? JSON.stringify(mmStripTree(tree),null,2) : mmTreeToStr(tree);
+  }catch(e){ /* leave content as-is; the error will surface in the live preview below */ }
 }
 function mmUpdateEditPreview(){
   var text=elEditTextarea.value.trim(); elEditError.textContent="";
@@ -1455,8 +1771,8 @@ function mmUpdateEditPreview(){
   catch(e){ elEditError.textContent="Preview error: "+e.message; }
 }
 elEditTextarea.addEventListener("input",function(){ clearTimeout(mmEditDebounceTimer); mmEditDebounceTimer=setTimeout(mmUpdateEditPreview,350); });
-elEditTabIndent.addEventListener("click",function(){ mmSetEditMode("indent"); mmUpdateEditPreview(); });
-elEditTabJson.addEventListener("click",function(){ mmSetEditMode("json"); mmUpdateEditPreview(); });
+elEditTabIndent.addEventListener("click",function(){ if(mmEditMode!=="indent"){ mmConvertEditContent(mmEditMode,"indent"); } mmSetEditMode("indent"); mmUpdateEditPreview(); });
+elEditTabJson.addEventListener("click",function(){ if(mmEditMode!=="json"){ mmConvertEditContent(mmEditMode,"json"); } mmSetEditMode("json"); mmUpdateEditPreview(); });
 elEditOverlay.addEventListener("click",function(ev){ if(ev.target===elEditOverlay) mmCloseEditModal(); });
 $("mmEditCancelBtn").addEventListener("click",mmCloseEditModal);
 $("mmEditMapBtn").addEventListener("click",mmOpenEditModal);
@@ -1471,6 +1787,7 @@ $("mmEditSaveBtn").addEventListener("click",function(){
   var meta=mmState.maps.find(function(m){return m.id===mmState.currentId;});
   if(meta) meta.name=name;
   mmSaveIndex(); elCurrentTitle.textContent=name; mmPersistCurrent(); mmCloseEditModal();
+  mmCloseDescPanel();
   mmClearCanvas(); mmResetView(); mmRender(); mmRenderFileList();
   mmToast("Changes saved","ok");
 });
@@ -1492,7 +1809,7 @@ $("mmExportMapBtn").addEventListener("click",mmExportCurrentMap);
 function mmSystemExport(){
   if(!mmState.maps.length && !mmState.folders.length){ mmToast("Nothing to export yet.","danger"); return; }
   var payload={
-    schema:"mindmaps-system-export", version:2, exportedAt:new Date().toISOString(),
+    schema:"mindmaps-system-export", version:3, exportedAt:new Date().toISOString(),
     folders: mmState.folders,
     maps: mmState.maps.map(function(m){ return {id:m.id, name:m.name, ts:m.ts, folderId:m.folderId||null, tree: mmLoadMapData(m.id)}; })
   };
@@ -1554,66 +1871,116 @@ $("mmSysExportBtn").addEventListener("click",mmSystemExport);
 $("mmSysImportBtn").addEventListener("click",function(){ elSysImportInput.value=""; elSysImportInput.click(); });
 elSysImportInput.addEventListener("change",function(){ if(elSysImportInput.files && elSysImportInput.files[0]) mmSystemImport(elSysImportInput.files[0]); });
 
-/* ============================================================ DOWNLOAD PNG (themed, high quality, no UI chrome) */
+/* ============================================================ DOWNLOAD PNG (fresh off-DOM static render — never carries stray strike-through, always crisp) */
 function mmDownloadPng(){
   if(!mmState.tree){ mmToast("Open a mind map first.","danger"); return; }
   var cs=getComputedStyle(document.documentElement);
   var vars={};
   ["--bg-canvas","--n0-fill","--n0-text","--n1-fill","--n1-text","--n2-fill","--n2-text","--n3-fill","--n3-text",
    "--e0","--e1","--e2","--e3","--border","--text","--accent","--ok"].forEach(function(n){ vars[n]=cs.getPropertyValue(n).trim(); });
-  if(!mmPrevLayout) return;
-  var items=Object.keys(mmPrevLayout.nodes).map(function(k){return mmPrevLayout.nodes[k];});
-  if(!items.length){ mmToast("Nothing to export.","danger"); return; }
-  var mn={x:Infinity,y:Infinity}, mx={x:-Infinity,y:-Infinity};
-  items.forEach(function(it){ mn.x=Math.min(mn.x,it.x); mn.y=Math.min(mn.y,it.y-it.h/2); mx.x=Math.max(mx.x,it.x+it.w+HUB_GAP+20); mx.y=Math.max(mx.y,it.y+it.h/2); });
-  var pad=54, dpr=3;
-  var cW=(mx.x-mn.x+pad*2), cH=(mx.y-mn.y+pad*2);
-  var W=Math.ceil(cW*dpr), H=Math.ceil(cH*dpr);
-  var cloned=elSvg.cloneNode(true);
-  cloned.setAttribute("width",W); cloned.setAttribute("height",H); cloned.setAttribute("xmlns","http://www.w3.org/2000/svg"); cloned.style.cssText="";
-  var vp=cloned.querySelector("#mmViewport");
-  var tx=(-mn.x+pad)*dpr, ty=(-mn.y+pad)*dpr;
-  vp.style.cssText=""; vp.setAttribute("transform","translate("+tx+","+ty+") scale("+dpr+")");
+
+  var tmpSvg=mmSvgEl("svg");
+  var tmpEdges=mmSvgEl("g"); var tmpNodes=mmSvgEl("g");
+  tmpSvg.appendChild(tmpEdges); tmpSvg.appendChild(tmpNodes);
+  tmpSvg.style.position="fixed"; tmpSvg.style.left="-99999px"; tmpSvg.style.top="0"; tmpSvg.style.width="10px"; tmpSvg.style.height="10px";
+  document.body.appendChild(tmpSvg);
+
+  // Rebuilds the whole map straight from the tree data: a strike-through element is only ever
+  // created when node.checked is true, so an all-unchecked map can never show one in the export.
+  mmStaticRender(mmState.tree, tmpNodes, tmpEdges, tmpSvg);
+
+  // Toggle arrows are interactive-only chrome; strip them from the exported image.
+  Array.prototype.slice.call(tmpSvg.querySelectorAll(".mm-toggle-circle,.mm-toggle-glyph")).forEach(function(el){ if(el.parentNode) el.parentNode.removeChild(el); });
+
+  var vbAttr=tmpSvg.getAttribute("viewBox");
+  if(!vbAttr){ document.body.removeChild(tmpSvg); mmToast("Nothing to export.","danger"); return; }
+  var vb=vbAttr.split(" ").map(Number);
+  var cW=vb[2], cH=vb[3];
+  var dpr=4; // high-resolution export
+  var W=Math.max(1,Math.ceil(cW*dpr)), H=Math.max(1,Math.ceil(cH*dpr));
+
   function resolveEl(el){
     ["fill","stroke"].forEach(function(a){
-      var v=el.getAttribute(a);
+      var v=el.getAttribute && el.getAttribute(a);
       if(v && v.indexOf("var(")!==-1) el.setAttribute(a, v.replace(/var\((--[^)]+)\)/g,function(_,k){ return vars[k]||"transparent"; }));
     });
-    if(el.style){
-      ["fill","stroke"].forEach(function(p){
-        if(el.style[p] && el.style[p].indexOf("var(")!==-1) el.style[p]=el.style[p].replace(/var\((--[^)]+)\)/g,function(_,k){ return vars[k]||"transparent"; });
-      });
-      el.style.transition="none"; el.style.filter="none"; el.style.opacity="";
-    }
     if(el.tagName==="text") el.setAttribute("font-family","Arial, Helvetica, sans-serif");
-    Array.from(el.children).forEach(resolveEl);
+    Array.prototype.slice.call(el.children||[]).forEach(resolveEl);
   }
-  resolveEl(cloned);
-  cloned.querySelectorAll("foreignObject").forEach(function(f){ f.parentNode.removeChild(f); });
-  cloned.querySelectorAll(".mm-plus-group").forEach(function(p){ p.parentNode.removeChild(p); });
-  cloned.querySelectorAll(".mm-toggle-group").forEach(function(t){ if(t.style.display==="none") t.parentNode.removeChild(t); });
+  resolveEl(tmpSvg);
+
   var bg=document.createElementNS("http://www.w3.org/2000/svg","rect");
-  bg.setAttribute("width",W); bg.setAttribute("height",H); bg.setAttribute("fill",vars["--bg-canvas"]);
-  cloned.insertBefore(bg,cloned.firstChild);
-  var svgStr=new XMLSerializer().serializeToString(cloned);
+  bg.setAttribute("x",vb[0]); bg.setAttribute("y",vb[1]); bg.setAttribute("width",vb[2]); bg.setAttribute("height",vb[3]);
+  bg.setAttribute("fill",vars["--bg-canvas"]);
+  tmpSvg.insertBefore(bg,tmpSvg.firstChild);
+
+  // Setting explicit pixel width/height (while keeping the original viewBox) makes the browser's
+  // SVG rasterizer render at that exact resolution — crisp at any zoom, unlike scaling a live clone.
+  tmpSvg.setAttribute("width",W); tmpSvg.setAttribute("height",H);
+  tmpSvg.setAttribute("xmlns","http://www.w3.org/2000/svg");
+
+  var svgStr=new XMLSerializer().serializeToString(tmpSvg);
+  document.body.removeChild(tmpSvg);
+
   var blob=new Blob([svgStr],{type:"image/svg+xml;charset=utf-8"});
   var url=URL.createObjectURL(blob);
   var img=new Image();
   img.onload=function(){
     var canvas=document.createElement("canvas"); canvas.width=W; canvas.height=H;
-    var ctx=canvas.getContext("2d"); ctx.imageSmoothingQuality="high";
-    ctx.fillStyle=vars["--bg-canvas"]; ctx.fillRect(0,0,W,H); ctx.drawImage(img,0,0);
+    var ctx=canvas.getContext("2d"); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+    ctx.fillStyle=vars["--bg-canvas"]; ctx.fillRect(0,0,W,H);
+    ctx.drawImage(img,0,0,W,H);
     URL.revokeObjectURL(url);
     var link=document.createElement("a");
     link.download=(elCurrentTitle.textContent||"mindmap").replace(/[^\w\-]+/g,"_")+".png";
     link.href=canvas.toDataURL("image/png",1.0);
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    mmToast("PNG downloaded","ok","fa-image");
+    mmToast("High-res PNG downloaded","ok","fa-image");
   };
   img.onerror=function(){ URL.revokeObjectURL(url); mmToast("PNG export failed. Try JSON export instead.","danger"); };
   img.src=url;
 }
 $("mmDownloadPng").addEventListener("click",mmDownloadPng);
+
+/* ============================================================ DESCRIPTION PANEL */
+function mmOpenDescPanel(nodeId, editable){
+  var node=mmFindNode(mmState.tree,nodeId); if(!node) return;
+  mmHideAllPopovers();
+  mmDescPanelNodeId=nodeId;
+  mmDescPanelEditable=!!editable;
+  elDescTitle.textContent=node.name;
+  if(mmDescPanelEditable){
+    elDescTextarea.value=node.desc||"";
+    elDescTextarea.style.display="block";
+    elDescViewer.style.display="none";
+    elDescSaveBtn.style.display="";
+  } else {
+    elDescViewer.textContent=node.desc||"";
+    elDescTextarea.style.display="none";
+    elDescViewer.style.display="block";
+    elDescSaveBtn.style.display="none";
+  }
+  elDescPanel.classList.add("mm-open");
+  elDescScrim.classList.add("mm-open");
+  if(mmDescPanelEditable) setTimeout(function(){ elDescTextarea.focus(); },220);
+}
+function mmCloseDescPanel(){
+  elDescPanel.classList.remove("mm-open");
+  elDescScrim.classList.remove("mm-open");
+  mmDescPanelNodeId=null;
+}
+function mmSaveDescPanel(){
+  if(!mmDescPanelNodeId) return;
+  var node=mmFindNode(mmState.tree,mmDescPanelNodeId); if(!node) return;
+  node.desc=elDescTextarea.value;
+  mmPersistCurrent();
+  mmRender();
+  mmToast("Description saved","ok","fa-circle-check");
+}
+$("mmDescCloseBtn").addEventListener("click",mmCloseDescPanel);
+$("mmDescCancelBtn").addEventListener("click",mmCloseDescPanel);
+$("mmDescSaveBtn").addEventListener("click",mmSaveDescPanel);
+elDescScrim.addEventListener("click",mmCloseDescPanel);
 
 /* ============================================================ THEME (light / dark) */
 function mmApplyDark(){
@@ -1633,7 +2000,7 @@ function mmApplyMode(){
 }
 $("mmModeSwitch").addEventListener("click",function(ev){
   var btn=ev.target.closest(".mm-mode-btn"); if(!btn) return;
-  mmState.mode=btn.dataset.mode; mmApplyMode(); mmSavePrefs(); mmHideAllPopovers();
+  mmState.mode=btn.dataset.mode; mmApplyMode(); mmSavePrefs(); mmHideAllPopovers(); mmCloseDescPanel();
 });
 
 /* ============================================================ SIDEBAR TOGGLES */
@@ -1664,7 +2031,28 @@ elMoreMenu.addEventListener("click",function(ev){
     case "editStructure": mmOpenEditModal(); break;
     case "exportMap": mmExportCurrentMap(); break;
     case "downloadPng": mmDownloadPng(); break;
+    case "openDocs": elDocsOverlay.classList.add("mm-open"); break;
   }
+});
+
+/* ============================================================ DOCUMENTATION MODAL */
+$("mmDocsBtn").addEventListener("click",function(){ mmHideAllPopovers(); elDocsOverlay.classList.add("mm-open"); });
+$("mmDocsCloseBtn").addEventListener("click",function(){ elDocsOverlay.classList.remove("mm-open"); });
+elDocsOverlay.addEventListener("click",function(ev){ if(ev.target===elDocsOverlay) elDocsOverlay.classList.remove("mm-open"); });
+document.querySelectorAll(".mm-docs-tab").forEach(function(tab){
+  tab.addEventListener("click",function(){
+    document.querySelectorAll(".mm-docs-tab").forEach(function(t){ t.classList.remove("mm-active"); });
+    tab.classList.add("mm-active");
+    var target=tab.getAttribute("data-tab");
+    document.querySelectorAll(".mm-docs-panel").forEach(function(p){ p.classList.toggle("mm-active", p.getAttribute("data-panel")===target); });
+  });
+});
+document.querySelectorAll(".mm-docs-copy").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    var targetId=btn.getAttribute("data-copy-target");
+    var el=document.getElementById(targetId);
+    if(el) mmCopyText(el.textContent);
+  });
 });
 
 /* ============================================================ GLOBAL POPOVER DISMISS */
